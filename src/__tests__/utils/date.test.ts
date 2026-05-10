@@ -41,8 +41,10 @@ describe('formatDayLabel', () => {
 });
 
 describe('todayISO', () => {
-  it('returns a parseable ISO string', () => {
+  it('returns a parseable ISO string without timezone suffix', () => {
     const iso = todayISO();
     expect(new Date(iso).toString()).not.toBe('Invalid Date');
+    expect(iso).not.toContain('Z'); // must be local time, not UTC
+    expect(iso).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}$/);
   });
 });

@@ -22,11 +22,7 @@ class TestDatabase implements Database {
   }
 
   async transaction<T>(fn: (tx: Database) => Promise<T>): Promise<T> {
-    let resultPromise!: Promise<T>;
-    this.db.transaction(() => {
-      resultPromise = fn(this);
-    })();
-    return resultPromise;
+    return fn(this);
   }
 
   async close(): Promise<void> {

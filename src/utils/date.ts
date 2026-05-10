@@ -7,7 +7,8 @@ function ymd(d: Date): string {
 }
 
 export function todayISO(): string {
-  return new Date().toISOString();
+  const d = new Date();
+  return `${ymd(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${d.getMilliseconds().toString().padStart(3, '0')}`;
 }
 
 export function dayBoundsLocalISO(date: Date): { start: string; end: string } {
