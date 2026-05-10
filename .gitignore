@@ -1,6 +1,9 @@
 # Brainstorming session artifacts (visual companion)
 .superpowers/
 
+# Git worktrees
+.worktrees/
+
 # OS
 .DS_Store
 Thumbs.db
