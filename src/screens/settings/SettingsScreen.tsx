@@ -1,5 +1,67 @@
-import { View } from 'react-native';
-import { Text } from 'react-native-paper';
-export function SettingsScreen() {
-  return <View><Text>Settings placeholder</Text></View>;
+import { ScrollView, View } from 'react-native';
+import { List } from 'react-native-paper';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSettingsStore } from '@/store/settings';
+import { palette } from '@/theme/palette';
+import type { HistoryStackParamList } from '@/navigation/types';
+
+type Nav = NativeStackNavigationProp<HistoryStackParamList, 'Settings'>;
+
+const TEXT_SIZE_LABEL: Record<string, string> = {
+  small: 'Small',
+  medium: 'Medium',
+  large: 'Large',
+  xlarge: 'Extra Large',
+};
+
+const DENSITY_LABEL: Record<string, string> = {
+  compact: 'Compact',
+  comfortable: 'Comfortable',
+  spacious: 'Spacious',
+};
+
+export function SettingsScreen({ navigation }: { navigation: Nav }) {
+  const { textSize, density, storeName } = useSettingsStore();
+
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: palette.surface }}>
+      <List.Section>
+        <List.Subheader>Store</List.Subheader>
+        <List.Item
+          title="Store name"
+          description={storeName}
+          left={(p) => <List.Icon {...p} icon="storefront-outline" />}
+        />
+      </List.Section>
+
+      <List.Section>
+        <List.Subheader>Display</List.Subheader>
+        <List.Item
+          title="Text size"
+          description={TEXT_SIZE_LABEL[textSize]}
+          left={(p) => <List.Icon {...p} icon="format-size" />}
+          right={(p) => <List.Icon {...p} icon="chevron-right" />}
+          onPress={() => navigation.navigate('DisplaySettings')}
+        />
+        <List.Item
+          title="Catalog density"
+          description={DENSITY_LABEL[density]}
+          left={(p) => <List.Icon {...p} icon="view-grid-outline" />}
+          right={(p) => <List.Icon {...p} icon="chevron-right" />}
+          onPress={() => navigation.navigate('DisplaySettings')}
+        />
+      </List.Section>
+
+      <List.Section>
+        <List.Subheader>About</List.Subheader>
+        <List.Item
+          title="App version"
+          description="0.1.0 — foundation"
+          left={(p) => <List.Icon {...p} icon="information-outline" />}
+        />
+      </List.Section>
+
+      <View style={{ height: 24 }} />
+    </ScrollView>
+  );
 }
