@@ -26,7 +26,7 @@ A point-of-sale app for a single sari-sari store owner. Built for **non-tech-sav
 - Inventory tracking (stock counts, restock history)
 - Receipts / thermal printing
 - Cloud sync, multi-device sync, or a backend server
-- Sales analytics beyond today + yesterday + per-customer utang
+- Sales analytics or charts (best sellers, trends, week-over-week)
 - Categories / product photos
 - Suppliers, purchase orders, cost-of-goods-sold accounting beyond a single optional cost field
 - Discounts, taxes, or promotions
@@ -68,9 +68,11 @@ flowchart TD
     Sell --> SellMain[Catalog grid + cart<br/>Today's Sales / Profit cards]
     SellMain --> CamScan[Camera scan modal]
     SellMain --> PaySheet[Pay bottom sheet]
-    PaySheet --> CashConfirm[Cash confirmation]
+    PaySheet --> CashSnack[Inline snackbar:<br/>✓ Cash ₱85 · Undo]
     PaySheet --> UtangForm[Utang name form]
-    UtangForm --> UtangConfirm[Utang confirmation]
+    UtangForm --> UtangSnack[Inline snackbar:<br/>✓ Utang ₱85 · Undo]
+    CashSnack -->|Undo within 10s| Delete[Hard-delete sale]
+    UtangSnack -->|Undo within 10s| Delete
 
     Products --> ProductList[Product list + search + FAB]
     ProductList --> ProductForm[Add / Edit form]
@@ -80,7 +82,8 @@ flowchart TD
     BarcodeSheet --> Generate[Generate Code-128]
     Generate --> BarcodeView[Generated barcode display<br/>Save image / Share]
 
-    History --> HistoryMain[Today + Yesterday cards<br/>Toggle: Transactions / Utang]
+    History --> HistoryMain[Date-filtered totals cards<br/>Date chip: Today ▾<br/>Toggle: Transactions / Utang]
+    HistoryMain --> DatePick[Date picker]
     HistoryMain --> TxnDetail[Receipt detail]
     HistoryMain --> UtangPay[Mark-paid sheet]
     HistoryMain -->|gear icon| Settings
@@ -223,7 +226,7 @@ CREATE TABLE settings (
 
 ## 5. Core flows
 
-### 5.1 Sale flow (Cash path — 2 taps)
+### 5.1 Sale flow (Cash path — 2 taps, inline confirmation)
 
 ```mermaid
 sequenceDiagram
@@ -232,7 +235,7 @@ sequenceDiagram
     participant Cart as Cart Store (Zustand)
     participant Sheet as Pay Bottom Sheet
     participant DB as SQLite
-    participant Confirm as Confirmation Screen
+    participant Snack as Inline Snackbar
 
     Owner->>SellTab: Tap product (or scan barcode)
     SellTab->>Cart: addItem(product)
@@ -245,11 +248,12 @@ sequenceDiagram
     Sheet->>DB: INSERT sales (cash) + sale_items (snapshot)
     DB-->>Sheet: Sale id
     Sheet->>Cart: Clear cart
-    Sheet->>Confirm: Show success + today's running total
-    Note over Confirm: Undo button (10s) · auto-return (2.5s)
+    Sheet->>SellTab: Close sheet, return to catalog
+    SellTab->>Snack: Show "✓ Cash ₱85 · Undo" above cart bar
+    Note over Snack: Auto-dismiss after 10s. Tapping Undo<br/>HARD-DELETES sale + sale_items (CASCADE).<br/>Tapping anywhere else dismisses without undo.
 ```
 
-### 5.2 Sale flow (Utang path — 3-4 taps)
+### 5.2 Sale flow (Utang path — 3-4 taps, inline confirmation)
 
 ```mermaid
 flowchart LR
@@ -258,11 +262,22 @@ flowchart LR
     C -->|Tap a recent customer chip| E[Record utang]
     C -->|Type new name + tap Record| E
     E -->|INSERT sale row<br/>payment_type=utang<br/>customer_name=X| F[(SQLite)]
-    F --> G[Confirmation<br/>shows customer's<br/>total running utang]
-    G -->|Auto-return 2.5s or tap Next| A2[Empty Sell tab<br/>ready for next sale]
+    F --> G[Sheet closes · cart clears]
+    G --> H["Inline snackbar above cart bar:<br/>✓ Utang ₱85 · Aling Nena · Undo"]
+    H -->|Auto-dismiss after 10s| Done[Catalog ready for next sale]
+    H -->|Tap Undo within 10s| Del[Hard-delete sale + items]
 ```
 
-### 5.3 Void flow
+### 5.3 Undo (immediate, < 10s) vs Void (later, from History)
+
+Two different "I made a mistake" mechanics:
+
+| Mechanic | When | UI | DB effect |
+|---|---|---|---|
+| **Undo** | ≤ 10 seconds after sale | Inline snackbar action button, on the Sell tab | **Hard delete**: `DELETE FROM sales WHERE id = ?` (cascades to `sale_items` and `utang_payments`) |
+| **Void** | Any time later, from History | Long-press a transaction → "Void this transaction" → confirm | **Soft void**: `UPDATE sales SET voided_at = now`. Row stays visible, struck-through, excluded from totals. |
+
+Rationale: a sale undone within 10 seconds was never visible to anyone — keep history clean. A sale voided later is part of a record the owner has already seen — preserve the audit trail.
 
 ```mermaid
 flowchart TD
@@ -272,7 +287,7 @@ flowchart TD
     R -->|Tap Void| C
     C -->|Cancel| A
     C -->|Confirm| D[UPDATE sales SET voided_at=now]
-    D --> E[Row stays in list, struck-through<br/>Excluded from today's totals]
+    D --> E[Row stays in list, struck-through<br/>Excluded from totals]
 ```
 
 ### 5.4 Utang FIFO allocation (Mark paid)
@@ -295,6 +310,8 @@ flowchart TD
 
 **All allocations happen inside one DB transaction.** If anything fails, the whole payment rolls back.
 
+**Overpayment is refused.** The Mark-paid input is capped at the customer's total outstanding balance. The "All ₱X" quick-amt button always equals the exact balance. Typing a larger value triggers an inline error: "Cannot pay more than ₱X owed." This avoids "credit balance" complexity (out of scope).
+
 ### 5.5 Add product + barcode flow
 
 ```mermaid
@@ -316,6 +333,47 @@ flowchart TD
 ```
 
 **Generated barcode format:** `SS-` + 6 random alphanumerics from `[A-Z0-9]` (e.g., `SS-A1B2C3`). Encoded as **Code 128**. Collision check against existing barcodes; regenerate on collision.
+
+### 5.6 History date filter
+
+The History tab supports browsing **any past day**, not just today. A date chip below the tab toggle controls which day is displayed.
+
+```mermaid
+flowchart TD
+    A[History tab opens] --> B[Default: Today]
+    B --> C[Top cards: Today's Sales / Profit<br/>Transaction list: today's sales]
+    C -->|Tap "Today ▾" chip| D[Date picker]
+    D --> E{Selected date}
+    E -->|Today| C
+    E -->|Yesterday| F1[Cards: Yesterday's Sales / Profit<br/>List: yesterday's sales]
+    E -->|Other past date| F2["Cards: Sales · Profit (May 7)<br/>List: that day's sales"]
+    F1 -->|Tap chip| D
+    F2 -->|Tap chip| D
+```
+
+**Behavior:**
+
+- **Default selection:** Today (set on every tab entry).
+- **Card labels follow selection:** "Today's Sales" → "Yesterday's Sales" → "Sales · May 7, 2026".
+- **Quick-pick row inside the date picker:** chips for Today, Yesterday, and 7 days ago to skip date-picker fiddling for common cases.
+- **Future dates disabled** in the picker.
+- **Earliest selectable date** = the date of the oldest sale in the DB (no point picking emptier dates).
+- **No date in the picker = no data:** if the owner picks a date with no sales, the list shows "No sales recorded on this day."
+- **Utang segment is unaffected** by the date chip — utang is "currently outstanding" by definition, not date-bounded. The date chip is hidden when the Utang segment is active.
+
+```mermaid
+flowchart LR
+    subgraph "Top of History tab"
+      D1[Today's Sales ₱2,425] --> D2[Today's Profit ₱504]
+    end
+    subgraph "Below toggle"
+      Chip[📅 Today ▾]
+    end
+    subgraph "Picker"
+      Q1[Today] --> Q2[Yesterday] --> Q3[7 days ago] --> Q4[…calendar…]
+    end
+    Chip --> Q1
+```
 
 ---
 
@@ -477,6 +535,9 @@ The restore is **atomic**: wipe + re-insert happen inside one SQLite transaction
 | **Long-press accidentally** | Long-press preview is non-destructive. Releasing without tapping anything just dismisses. |
 | **Cart abandoned** (owner switches tabs) | Cart persists in Zustand store; returns intact when owner comes back to Sell. |
 | **App killed mid-sale** (before tap Cash/Utang) | Cart was never written to DB → lost (acceptable for v1). |
+| **Overpayment on utang** | Mark-paid input capped at outstanding balance. Typing a higher value triggers inline error: "Cannot pay more than ₱X owed." |
+| **History: date with no sales** | List shows "No sales recorded on this day." Today's-totals cards show ₱0 for both. |
+| **History: future date** | Future dates disabled in the date picker (cannot be selected). |
 | **App killed during sale insert** | SQLite write is atomic; either fully written or not at all. |
 | **Voiding a fully-paid utang sale** | Allowed. Voided sale's payments stay in `utang_payments` (orphan but harmless — they reference a voided sale). Customer's outstanding balance recalculated excludes voided sales. |
 | **Future date / clock skew** | We trust device clock for "today". No special handling — out of scope. |
@@ -529,7 +590,7 @@ These are noted for future iterations, not v1 work:
 - **Categories** for the catalog.
 - **Product photos.**
 - **Cloud sync / multi-device.**
-- **Date-range reports** beyond today + yesterday.
+- **Date-range reports** (e.g., "show me totals for last week"). Single-date filter ships in v1; ranges and aggregations are deferred.
 - **Per-product sales analytics** (best sellers, etc.).
 - **Multi-store / multi-user.**
 - **Tingi auto-conversion** (1 pack ↔ 20 pieces).
@@ -608,11 +669,13 @@ src/
 
 ---
 
-## Appendix B — Open questions / things to confirm during implementation
+## Appendix B — Resolved decisions (locked 2026-05-10)
 
-1. Should the **Undo** button on the confirmation screen actually delete the sale row, or set `voided_at` (consistent with normal void)? Recommendation: hard delete since it's within ~10 seconds and never visible to the user. Keeps history clean.
-2. Should overpayment on utang be **refused** (cap at owed balance) or **allowed** (creating a credit)? Recommendation: cap (refuse) — credits add complexity not in scope.
-3. Should the Sell tab show **just-sold confirmation inline** (e.g., a non-blocking toast above the cart bar) instead of a full-screen confirmation? Current design uses full screen; could revisit if it feels disruptive in real use.
-4. Should the **History date filter** (view older than today/yesterday) ship in v1, or be deferred? Currently deferred — easy add later.
+These were open during brainstorming and have been resolved:
+
+1. **Undo semantics:** **Hard delete.** The Undo button on the post-sale snackbar (visible for 10s) issues `DELETE FROM sales WHERE id = ?` (cascades to `sale_items` and `utang_payments`). Rationale: an undone sale was never visible to the owner — keep history clean. Normal void (from History) remains a soft `voided_at` update.
+2. **Overpayment on utang:** **Refused.** The Mark-paid amount input is capped at the customer's outstanding balance; typing a larger value triggers an inline error. Avoids "credit balance" complexity (out of scope).
+3. **Just-sold confirmation:** **Inline snackbar** above the cart bar (non-blocking, ~10s with Undo action), not a full-screen confirmation. Less disruptive; keeps owner in flow for the next sale.
+4. **History date filter:** **Ships in v1** (single-date selection via a "Today ▾" chip + date picker — see §5.6). Date *ranges* and aggregations remain out of scope.
 
 End of spec.
