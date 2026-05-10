@@ -1,0 +1,17 @@
+{
+  "name": "sari-pos",
+  "version": "0.1.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint 'src/**/*.{ts,tsx}' 'App.tsx' 'index.ts'",
+    "format": "prettier --write 'src/**/*.{ts,tsx}' 'App.tsx' 'index.ts'",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "private": true
+}

@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Sari POS",
+    "slug": "sari-pos",
+    "version": "0.1.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ECEFF1"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "package": "com.sari.pos",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ECEFF1"
+      },
+      "permissions": ["CAMERA"]
+    },
+    "plugins": ["expo-sqlite", "expo-font"]
+  }
+}
