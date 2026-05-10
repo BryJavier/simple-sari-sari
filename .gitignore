@@ -1,0 +1,39 @@
+# Brainstorming session artifacts (visual companion)
+.superpowers/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Node / RN / Expo (in advance)
+node_modules/
+.expo/
+.expo-shared/
+dist/
+web-build/
+*.jks
+*.keystore
+android/.gradle/
+android/build/
+android/app/build/
+ios/build/
+ios/Pods/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage
+coverage/
