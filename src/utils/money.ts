@@ -1,6 +1,7 @@
 export class MoneyParseError extends Error {
   constructor(input: string) {
     super(`Invalid money input: "${input}"`);
+    Object.setPrototypeOf(this, MoneyParseError.prototype);
     this.name = 'MoneyParseError';
   }
 }
@@ -26,6 +27,9 @@ export function formatMoney(centavos: number): string {
 }
 
 export function formatMoneyShort(centavos: number): string {
+  if (!Number.isFinite(centavos) || centavos < 0) {
+    throw new Error(`formatMoneyShort: invalid centavos value ${centavos}`);
+  }
   const whole = Math.floor(centavos / 100);
   const frac = centavos % 100;
   const wholeStr = whole.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');

@@ -34,6 +34,12 @@ describe('parseMoney', () => {
   it('rejects non-numeric input', () => {
     expect(() => parseMoney('abc')).toThrow(MoneyParseError);
   });
+  it('parses zero whole pesos with only centavos', () => {
+    expect(parseMoney('0.05')).toBe(5);
+  });
+  it('parses explicit zero', () => {
+    expect(parseMoney('0')).toBe(0);
+  });
 });
 
 describe('formatMoney', () => {
@@ -49,6 +55,9 @@ describe('formatMoney', () => {
   it('formats large amounts with thousands separator', () => {
     expect(formatMoney(234000)).toBe('₱2,340');
     expect(formatMoney(234050)).toBe('₱2,340.50');
+  });
+  it('formats single-digit centavos with leading zero', () => {
+    expect(formatMoney(5)).toBe('₱0.05');
   });
 });
 
