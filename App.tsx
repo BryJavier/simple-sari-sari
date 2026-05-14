@@ -1,4 +1,4 @@
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import {
   useFonts,
@@ -16,13 +16,21 @@ import { BottomTabs } from '@/navigation/BottomTabs';
 import { palette } from '@/theme/palette';
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     PlusJakartaSans_400Regular,
     PlusJakartaSans_500Medium,
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
   });
+
+  if (fontError) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.surface, padding: 24 }}>
+        <Text style={{ color: palette.danger, textAlign: 'center' }}>Font load error: {fontError.message}</Text>
+      </View>
+    );
+  }
 
   if (!fontsLoaded) {
     return (
