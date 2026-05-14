@@ -6,10 +6,10 @@
     "noImplicitOverride": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*", "App.tsx", "index.ts", "*.d.ts"]
+  "include": ["src/**/*", "App.tsx", "index.ts", "*.d.ts"],
+  "exclude": ["src/__tests__/**"]
 }
