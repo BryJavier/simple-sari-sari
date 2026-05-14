@@ -1,3 +1,9 @@
+export type RootStackParamList = {
+  MainTabs: undefined;
+  Settings: undefined;
+  DisplaySettings: undefined;
+};
+
 export type SellStackParamList = {
   SellHome: undefined;
 };
@@ -8,8 +14,6 @@ export type ProductsStackParamList = {
 
 export type HistoryStackParamList = {
   HistoryHome: undefined;
-  Settings: undefined;
-  DisplaySettings: undefined;
 };
 
 export type RootTabParamList = {
