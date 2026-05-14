@@ -8,3 +8,20 @@ export interface Database {
   transaction<T>(fn: (tx: Database) => Promise<T>): Promise<T>;
   close(): Promise<void>;
 }
+
+export interface Product {
+  id: number;
+  name: string;
+  price_centavos: number;
+  cost_centavos: number | null;
+  barcode: string | null;
+  is_generated: number;
+  created_at: string;
+  archived_at: string | null;
+}
+
+export interface TodaySummary {
+  salesCount: number;
+  totalCentavos: number;
+  profitCentavos: number;
+}
