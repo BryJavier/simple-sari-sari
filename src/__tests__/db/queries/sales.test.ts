@@ -56,6 +56,30 @@ describe('createSale', () => {
     expect(items[0].product_name).toBe('Chippy');
     expect(items[0].unit_price_centavos).toBe(1500);
   });
+
+  it('creates one sale_item row per distinct product', async () => {
+    const { lastInsertRowid } = await db.run(
+      'INSERT INTO products (name, price_centavos, cost_centavos, is_generated, created_at) VALUES (?, ?, ?, 0, ?)',
+      ['Skyflakes', 1200, 800, todayISO()],
+    );
+    const product2 = (await db.get<Product>('SELECT * FROM products WHERE id = ?', [lastInsertRowid]))!;
+
+    const saleId = await createSale(db, {
+      items: [
+        { product, quantity: 2 },
+        { product: product2, quantity: 3 },
+      ],
+      paymentType: 'cash',
+    });
+
+    const items = await db.all<{ product_name: string; quantity: number }>(
+      'SELECT product_name, quantity FROM sale_items WHERE sale_id = ? ORDER BY product_name ASC',
+      [saleId],
+    );
+    expect(items).toHaveLength(2);
+    expect(items[0]).toEqual({ product_name: 'Chippy', quantity: 2 });
+    expect(items[1]).toEqual({ product_name: 'Skyflakes', quantity: 3 });
+  });
 });
 
 describe('voidSale', () => {
