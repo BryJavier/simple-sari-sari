@@ -1,11 +1,12 @@
 import { ScrollView, View } from 'react-native';
 import { List } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSettingsStore } from '@/store/settings';
 import { palette } from '@/theme/palette';
-import type { HistoryStackParamList } from '@/navigation/types';
+import type { RootStackParamList } from '@/navigation/types';
 
-type Nav = NativeStackNavigationProp<HistoryStackParamList, 'Settings'>;
+type RootNav = NativeStackNavigationProp<RootStackParamList>;
 
 const TEXT_SIZE_LABEL: Record<string, string> = {
   small: 'Small',
@@ -20,7 +21,8 @@ const DENSITY_LABEL: Record<string, string> = {
   spacious: 'Spacious',
 };
 
-export function SettingsScreen({ navigation }: { navigation: Nav }) {
+export function SettingsScreen() {
+  const navigation = useNavigation<RootNav>();
   const { textSize, density, storeName } = useSettingsStore();
 
   return (
