@@ -12,7 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { DatabaseProvider } from '@/db/DatabaseProvider';
-import { BottomTabs } from '@/navigation/BottomTabs';
+import { RootStack } from '@/navigation/RootStack';
 import { palette } from '@/theme/palette';
 
 export default function App() {
@@ -46,7 +46,7 @@ export default function App() {
         <ThemeProvider>
           <NavigationContainer>
             <StatusBar style="dark" />
-            <BottomTabs />
+            <RootStack />
           </NavigationContainer>
         </ThemeProvider>
       </DatabaseProvider>
