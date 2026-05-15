@@ -1,4 +1,4 @@
-package com.sari.pos
+package com.saripos
 
 import android.app.Application
 import android.content.res.Configuration

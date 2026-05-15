@@ -1,4 +1,4 @@
-package com.sari.pos
+package com.saripos
 
 import android.os.Build
 import android.os.Bundle
