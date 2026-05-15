@@ -48,9 +48,13 @@ export function PaySheet({ visible, onDismiss, onSaleComplete }: PaySheetProps) 
 
   async function handleUndo() {
     if (lastSaleId !== null) {
-      await voidSale(db, lastSaleId);
-      setLastSaleId(null);
-      onSaleComplete();
+      try {
+        await voidSale(db, lastSaleId);
+        setLastSaleId(null);
+        onSaleComplete();
+      } catch (e) {
+        console.error('Failed to void sale', e);
+      }
     }
     setSnackVisible(false);
   }

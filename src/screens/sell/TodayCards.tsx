@@ -26,7 +26,7 @@ export function TodayCards({ refreshKey = 0 }: TodayCardsProps) {
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
   useEffect(() => {
-    refresh();
+    if (refreshKey > 0) refresh();
   }, [refresh, refreshKey]);
 
   return (
