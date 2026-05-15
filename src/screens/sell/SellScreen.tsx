@@ -1,17 +1,49 @@
-import { View } from 'react-native';
-import { Appbar, Text } from 'react-native-paper';
+import { useCallback, useEffect, useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { Appbar } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useDatabase } from '@/db/DatabaseProvider';
+import { listActiveProducts, seedSampleProducts } from '@/db/queries/products';
+import { useCartStore } from '@/store/cart';
+import { useIsTablet } from '@/utils/layout';
 import { palette } from '@/theme/palette';
 import type { RootStackParamList } from '@/navigation/types';
+import type { Product } from '@/db/types';
+import { TodayCards } from './TodayCards';
+import { CatalogGrid } from './CatalogGrid';
+import { ProductPreviewSheet } from './ProductPreviewSheet';
+import { CartBar } from './CartBar';
+import { CartPane } from './CartPane';
+import { PaySheet } from './PaySheet';
 
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 
 export function SellScreen() {
   const navigation = useNavigation<RootNav>();
+  const db = useDatabase();
+  const isTablet = useIsTablet();
+  const addItem = useCartStore((s) => s.addItem);
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
+  const [payVisible, setPayVisible] = useState(false);
+  const [summaryKey, setSummaryKey] = useState(0);
+
+  useEffect(() => {
+    async function init() {
+      await seedSampleProducts(db);
+      setProducts(await listActiveProducts(db));
+    }
+    init();
+  }, [db]);
+
+  const handleSaleComplete = useCallback(() => {
+    setSummaryKey((k) => k + 1);
+  }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.surface }}>
+    <View style={styles.root}>
       <Appbar.Header>
         <Appbar.Content title="Sell" />
         <Appbar.Action
@@ -20,12 +52,37 @@ export function SellScreen() {
           accessibilityLabel="Settings"
         />
       </Appbar.Header>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <Text variant="headlineMedium">Sell</Text>
-        <Text variant="bodyMedium" style={{ marginTop: 8, color: palette.text3, textAlign: 'center' }}>
-          Catalog and cart coming in Plan 2.
-        </Text>
+
+      <View style={[styles.body, isTablet && styles.bodyTablet]}>
+        <View style={styles.main}>
+          <TodayCards refreshKey={summaryKey} />
+          <CatalogGrid
+            products={products}
+            onPress={(p) => addItem(p)}
+            onLongPress={(p) => setPreviewProduct(p)}
+          />
+        </View>
+        {isTablet && <CartPane onPay={() => setPayVisible(true)} />}
       </View>
+
+      {!isTablet && <CartBar onPay={() => setPayVisible(true)} />}
+
+      <ProductPreviewSheet
+        product={previewProduct}
+        onDismiss={() => setPreviewProduct(null)}
+      />
+      <PaySheet
+        visible={payVisible}
+        onDismiss={() => setPayVisible(false)}
+        onSaleComplete={handleSaleComplete}
+      />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: palette.surface },
+  body: { flex: 1 },
+  bodyTablet: { flexDirection: 'row' },
+  main: { flex: 1 },
+});
