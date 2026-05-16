@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Modal, Portal, Text, Snackbar, IconButton } from 'react-native-paper';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Audio } from 'expo-av';
 import { useCartStore, cartTotalCentavos } from '@/store/cart';
 import { formatMoney } from '@/utils/money';
 import { palette } from '@/theme/palette';
@@ -28,6 +29,23 @@ export function BarcodeScannerModal({
   useEffect(() => {
     onDismissRef.current = onDismiss;
   });
+  const soundRef = useRef<Audio.Sound | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    Audio.setAudioModeAsync({ playsInSilentModeIOS: false }).catch(() => {});
+    Audio.Sound.createAsync(require('../../../assets/sounds/beep.wav'))
+      .then(({ sound }) => {
+        if (mounted) soundRef.current = sound;
+      })
+      .catch(() => {});
+
+    return () => {
+      mounted = false;
+      soundRef.current?.unloadAsync().catch(() => {});
+      soundRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     if (!visible) {
@@ -72,6 +90,7 @@ export function BarcodeScannerModal({
                     setSnackVisible(true);
                   } else {
                     addItem(product);
+                    soundRef.current?.replayAsync().catch(() => {});
                   }
 
                   if (debounceTimer.current) clearTimeout(debounceTimer.current);
