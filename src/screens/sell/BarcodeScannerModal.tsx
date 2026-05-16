@@ -22,7 +22,7 @@ export function BarcodeScannerModal({
   const addItem = useCartStore((s) => s.addItem);
   const [permission, requestPermission] = useCameraPermissions();
   const [snackVisible, setSnackVisible] = useState(false);
-  const scanningRef = useRef(false);
+  const lastScannedRef = useRef<string | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onDismissRef = useRef(onDismiss);
   useEffect(() => {
@@ -35,7 +35,7 @@ export function BarcodeScannerModal({
         clearTimeout(debounceTimer.current);
         debounceTimer.current = null;
       }
-      scanningRef.current = false;
+      lastScannedRef.current = null;
       setSnackVisible(false);
       return;
     }
@@ -63,25 +63,22 @@ export function BarcodeScannerModal({
               <CameraView
                 style={StyleSheet.absoluteFillObject}
                 onBarcodeScanned={({ data }) => {
-                  if (scanningRef.current) return;
-                  const product = products.find((p) => p.barcode === data);
+                  const trimmed = data.trim();
+                  if (lastScannedRef.current === trimmed) return;
+                  lastScannedRef.current = trimmed;
+
+                  const product = products.find((p) => p.barcode === trimmed);
                   if (!product) {
                     setSnackVisible(true);
-                    scanningRef.current = true;
-                    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-                    debounceTimer.current = setTimeout(() => {
-                      scanningRef.current = false;
-                      debounceTimer.current = null;
-                    }, 800);
-                    return;
+                  } else {
+                    addItem(product);
                   }
-                  scanningRef.current = true;
-                  addItem(product);
+
                   if (debounceTimer.current) clearTimeout(debounceTimer.current);
                   debounceTimer.current = setTimeout(() => {
-                    scanningRef.current = false;
+                    lastScannedRef.current = null;
                     debounceTimer.current = null;
-                  }, 800);
+                  }, 3000);
                 }}
                 barcodeScannerSettings={{
                   barcodeTypes: ['ean13', 'ean8', 'code128', 'code39', 'qr'],
