@@ -10,6 +10,7 @@ export type SellStackParamList = {
 
 export type ProductsStackParamList = {
   ProductList: undefined;
+  ProductForm: { productId?: number };
 };
 
 export type HistoryStackParamList = {
