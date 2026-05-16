@@ -4,11 +4,13 @@ import { SellStack } from './SellStack';
 import { ProductsStack } from './ProductsStack';
 import { HistoryStack } from './HistoryStack';
 import type { RootTabParamList } from './types';
-import { palette } from '@/theme/palette';
+import { useAppPalette } from '@/theme/useAppPalette';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export function BottomTabs() {
+  const palette = useAppPalette();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({

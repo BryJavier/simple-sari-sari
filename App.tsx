@@ -13,7 +13,9 @@ import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { DatabaseProvider } from '@/db/DatabaseProvider';
 import { RootStack } from '@/navigation/RootStack';
-import { palette } from '@/theme/palette';
+import { deriveTokens } from '@/theme/palette';
+import { useSettingsStore } from '@/store/settings';
+import { PRESET_HUES } from '@/theme/types';
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
@@ -23,6 +25,12 @@ export default function App() {
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
   });
+
+  const themePreset = useSettingsStore((s) => s.themePreset);
+  const themeCustomHue = useSettingsStore((s) => s.themeCustomHue);
+  const themeDarkMode = useSettingsStore((s) => s.themeDarkMode);
+  const hue = themePreset === 'custom' ? themeCustomHue : PRESET_HUES[themePreset as Exclude<typeof themePreset, 'custom'>];
+  const palette = deriveTokens(hue, themeDarkMode);
 
   if (fontError) {
     return (
