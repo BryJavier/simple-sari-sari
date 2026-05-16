@@ -15,6 +15,7 @@ import { CatalogGrid } from './CatalogGrid';
 import { ProductPreviewSheet } from './ProductPreviewSheet';
 import { CartBar } from './CartBar';
 import { CartPane } from './CartPane';
+import { CartSheet } from './CartSheet';
 import { PaySheet } from './PaySheet';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
 
@@ -29,6 +30,7 @@ export function SellScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
   const [payVisible, setPayVisible] = useState(false);
+  const [cartSheetVisible, setCartSheetVisible] = useState(false);
   const [scannerVisible, setScannerVisible] = useState(false);
   const [summaryKey, setSummaryKey] = useState(0);
 
@@ -74,7 +76,12 @@ export function SellScreen() {
         {isTablet && <CartPane onPay={() => setPayVisible(true)} />}
       </View>
 
-      {!isTablet && <CartBar onPay={() => setPayVisible(true)} />}
+      {!isTablet && (
+        <CartBar
+          onPay={() => setPayVisible(true)}
+          onViewCart={() => setCartSheetVisible(true)}
+        />
+      )}
 
       <ProductPreviewSheet
         product={previewProduct}
@@ -90,6 +97,13 @@ export function SellScreen() {
         products={products}
         onDismiss={() => setScannerVisible(false)}
       />
+      {!isTablet && (
+        <CartSheet
+          visible={cartSheetVisible}
+          onDismiss={() => setCartSheetVisible(false)}
+          onPay={() => setPayVisible(true)}
+        />
+      )}
     </View>
   );
 }

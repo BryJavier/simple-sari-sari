@@ -1,4 +1,4 @@
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { useCartStore, cartTotalCentavos, cartItemCount } from '@/store/cart';
 import { formatMoney } from '@/utils/money';
@@ -6,9 +6,10 @@ import { palette } from '@/theme/palette';
 
 interface CartBarProps {
   onPay: () => void;
+  onViewCart: () => void;
 }
 
-export function CartBar({ onPay }: CartBarProps) {
+export function CartBar({ onPay, onViewCart }: CartBarProps) {
   const items = useCartStore((s) => s.items);
   const total = cartTotalCentavos(items);
   const count = cartItemCount(items);
@@ -17,12 +18,14 @@ export function CartBar({ onPay }: CartBarProps) {
 
   return (
     <View style={styles.bar}>
-      <Text variant="labelLarge" style={styles.count}>
-        {count} item{count !== 1 ? 's' : ''}
-      </Text>
-      <Text variant="titleMedium" style={styles.total}>
-        {formatMoney(total)}
-      </Text>
+      <Pressable style={styles.info} onPress={onViewCart}>
+        <Text variant="labelLarge" style={styles.count}>
+          {count} item{count !== 1 ? 's' : ''}
+        </Text>
+        <Text variant="titleMedium" style={styles.total}>
+          {formatMoney(total)}
+        </Text>
+      </Pressable>
       <Button mode="contained" onPress={onPay} compact>
         Pay
       </Button>
@@ -41,6 +44,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 12,
   },
-  count: { flex: 1, color: palette.text3 },
+  info: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  count: { color: palette.text3 },
   total: { color: palette.text },
 });
