@@ -130,4 +130,12 @@ describe('product mutations', () => {
     const product = await getProductById(db, 99999);
     expect(product).toBeNull();
   });
+
+  it('updateProduct throws for non-existent id', async () => {
+    await expect(updateProduct(db, 99999, { name: 'X', price_centavos: 100 })).rejects.toThrow('99999');
+  });
+
+  it('archiveProduct throws for non-existent id', async () => {
+    await expect(archiveProduct(db, 99999)).rejects.toThrow('99999');
+  });
 });

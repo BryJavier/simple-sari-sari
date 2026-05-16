@@ -28,14 +28,19 @@ export async function updateProduct(
   id: number,
   input: UpdateProductInput,
 ): Promise<void> {
-  await db.run(
+  const { changes } = await db.run(
     'UPDATE products SET name = ?, price_centavos = ?, cost_centavos = ?, barcode = ? WHERE id = ?',
     [input.name, input.price_centavos, input.cost_centavos ?? null, input.barcode ?? null, id],
   );
+  if (changes === 0) throw new Error(`Product ${id} not found`);
 }
 
 export async function archiveProduct(db: Database, id: number): Promise<void> {
-  await db.run("UPDATE products SET archived_at = datetime('now') WHERE id = ?", [id]);
+  const { changes } = await db.run(
+    "UPDATE products SET archived_at = datetime('now') WHERE id = ?",
+    [id],
+  );
+  if (changes === 0) throw new Error(`Product ${id} not found`);
 }
 
 export async function getProductById(db: Database, id: number): Promise<Product | null> {
