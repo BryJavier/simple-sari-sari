@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, ScrollView, View, StyleSheet, Keyboard } from 'react-native';
 import {
   Appbar,
@@ -23,7 +23,7 @@ import {
   archiveProduct,
 } from '@/db/queries/products';
 import { parseMoney, formatMoneyEdit, isValidMoneyInput } from '@/utils/money';
-import { palette } from '@/theme/palette';
+import { useAppPalette } from '@/theme/useAppPalette';
 import type { ProductsStackParamList } from '@/navigation/types';
 import { BarcodeChooserSheet } from './BarcodeChooserSheet';
 import { BarcodeDisplaySheet } from './BarcodeDisplaySheet';
@@ -37,6 +37,8 @@ export function ProductFormScreen() {
   const route = useRoute<Route>();
   const productId = route.params?.productId;
   const isEdit = productId !== undefined;
+  const palette = useAppPalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
 
   const [name, setName] = useState('');
   const [priceText, setPriceText] = useState('');
@@ -160,7 +162,6 @@ export function ProductFormScreen() {
           style={styles.field}
         />
 
-        {/* Barcode field */}
         <View style={styles.barcodeRow}>
           <View style={styles.barcodeInfo}>
             <Text variant="labelMedium" style={styles.barcodeLabel}>Barcode</Text>
@@ -215,7 +216,6 @@ export function ProductFormScreen() {
         )}
       </ScrollView>
 
-      {/* Barcode chooser sheet */}
       <BarcodeChooserSheet
         visible={barcodeChooserVisible}
         onDismiss={() => setBarcodeChooserVisible(false)}
@@ -226,7 +226,6 @@ export function ProductFormScreen() {
         onScanRequested={handleScanRequested}
       />
 
-      {/* Camera modal */}
       <Portal>
         <Modal
           visible={cameraVisible}
@@ -255,7 +254,6 @@ export function ProductFormScreen() {
         </Modal>
       </Portal>
 
-      {/* Archive confirmation dialog */}
       <Portal>
         <Dialog
           visible={archiveDialogVisible}
@@ -276,7 +274,6 @@ export function ProductFormScreen() {
         </Dialog>
       </Portal>
 
-      {/* Barcode display sheet */}
       <BarcodeDisplaySheet
         visible={barcodeDisplayVisible}
         value={barcode}
@@ -286,33 +283,30 @@ export function ProductFormScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: palette.surface },
-  content: { padding: 16, gap: 12, paddingBottom: 40 },
-  field: { backgroundColor: palette.card },
-  barcodeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: palette.border,
-    borderRadius: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: palette.card,
-    gap: 12,
-  },
-  barcodeInfo: { flex: 1 },
-  barcodeButtons: { flexDirection: 'row', alignItems: 'center' },
-  barcodeLabel: { color: palette.text3, marginBottom: 2 },
-  barcodeValue: { color: palette.text, fontFamily: 'monospace' },
-  barcodePlaceholder: { color: palette.muted },
-  saveButton: { marginTop: 8 },
-  divider: { marginVertical: 24 },
-  archiveButton: { borderColor: palette.danger },
-  cameraClose: {
-    position: 'absolute',
-    top: 48,
-    right: 16,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-});
+function makeStyles(p: ReturnType<typeof useAppPalette>) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: p.surface },
+    content: { padding: 16, gap: 12, paddingBottom: 40 },
+    field: { backgroundColor: p.card },
+    barcodeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: p.border,
+      borderRadius: 4,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      backgroundColor: p.card,
+      gap: 12,
+    },
+    barcodeInfo: { flex: 1 },
+    barcodeButtons: { flexDirection: 'row', alignItems: 'center' },
+    barcodeLabel: { color: p.text3, marginBottom: 2 },
+    barcodeValue: { color: p.text, fontFamily: 'monospace' },
+    barcodePlaceholder: { color: p.muted },
+    saveButton: { marginTop: 8 },
+    divider: { marginVertical: 24 },
+    archiveButton: { borderColor: p.danger },
+    cameraClose: { position: 'absolute', top: 48, right: 16, backgroundColor: 'rgba(0,0,0,0.5)' },
+  });
+}
