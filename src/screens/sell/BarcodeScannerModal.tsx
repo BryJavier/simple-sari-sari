@@ -23,12 +23,24 @@ export function BarcodeScannerModal({
   const [permission, requestPermission] = useCameraPermissions();
   const [snackVisible, setSnackVisible] = useState(false);
   const scanningRef = useRef(false);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onDismissRef = useRef(onDismiss);
+  useEffect(() => {
+    onDismissRef.current = onDismiss;
+  });
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+        debounceTimer.current = null;
+      }
+      scanningRef.current = false;
+      return;
+    }
     if (permission?.granted) return;
     requestPermission().then((result) => {
-      if (!result.granted) onDismiss();
+      if (!result.granted) onDismissRef.current();
     });
     // intentionally only re-runs when the modal opens
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -54,12 +66,20 @@ export function BarcodeScannerModal({
                   const product = products.find((p) => p.barcode === data);
                   if (!product) {
                     setSnackVisible(true);
+                    scanningRef.current = true;
+                    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+                    debounceTimer.current = setTimeout(() => {
+                      scanningRef.current = false;
+                      debounceTimer.current = null;
+                    }, 800);
                     return;
                   }
                   scanningRef.current = true;
                   addItem(product);
-                  setTimeout(() => {
+                  if (debounceTimer.current) clearTimeout(debounceTimer.current);
+                  debounceTimer.current = setTimeout(() => {
                     scanningRef.current = false;
+                    debounceTimer.current = null;
                   }, 800);
                 }}
                 barcodeScannerSettings={{
