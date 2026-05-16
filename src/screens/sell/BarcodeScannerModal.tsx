@@ -28,6 +28,7 @@ export function BarcodeScannerModal({
   const [snackVisible, setSnackVisible] = useState(false);
   const lastScannedRef = useRef<string | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cameraLayoutRef = useRef<{ width: number; height: number } | null>(null);
   const onDismissRef = useRef(onDismiss);
   useEffect(() => {
     onDismissRef.current = onDismiss;
@@ -63,12 +64,28 @@ export function BarcodeScannerModal({
       >
         <View style={styles.root}>
           {/* Top half: live camera */}
-          <View style={styles.cameraHalf}>
+          <View
+            style={styles.cameraHalf}
+            onLayout={(e) => {
+              const { width, height } = e.nativeEvent.layout;
+              cameraLayoutRef.current = { width, height };
+            }}
+          >
             {permission?.granted && visible && (
               <CameraView
                 style={StyleSheet.absoluteFillObject}
-                onBarcodeScanned={({ data }) => {
-                  const trimmed = data.trim();
+                onBarcodeScanned={(e) => {
+                  // ROI filter: ignore scans outside the viewfinder rectangle
+                  const layout = cameraLayoutRef.current;
+                  if (layout && e.cornerPoints && e.cornerPoints.length > 0) {
+                    const cx = e.cornerPoints.reduce((s, p) => s + p.x, 0) / e.cornerPoints.length;
+                    const cy = e.cornerPoints.reduce((s, p) => s + p.y, 0) / e.cornerPoints.length;
+                    const vfLeft = (layout.width - 260) / 2;
+                    const vfTop  = (layout.height - 120) / 2;
+                    if (cx < vfLeft || cx > vfLeft + 260 || cy < vfTop || cy > vfTop + 120) return;
+                  }
+
+                  const trimmed = e.data.trim();
                   if (lastScannedRef.current === trimmed) return;
                   lastScannedRef.current = trimmed;
 

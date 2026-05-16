@@ -51,6 +51,7 @@ export function ProductFormScreen() {
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const scannedRef = useRef(false);
+  const cameraLayoutRef = useRef<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -241,19 +242,36 @@ export function ProductFormScreen() {
           onDismiss={() => setCameraVisible(false)}
           contentContainerStyle={StyleSheet.absoluteFillObject}
         >
-          <CameraView
+          <View
             style={StyleSheet.absoluteFillObject}
-            onBarcodeScanned={({ data }) => {
-              if (scannedRef.current) return;
-              scannedRef.current = true;
-              setBarcode(data);
-              setCameraVisible(false);
+            onLayout={(e) => {
+              const { width, height } = e.nativeEvent.layout;
+              cameraLayoutRef.current = { width, height };
             }}
-            barcodeScannerSettings={{
-              barcodeTypes: ['ean13', 'ean8', 'code128', 'code39', 'qr'],
-            }}
-          />
-          <BarcodeViewfinder />
+          >
+            <CameraView
+              style={StyleSheet.absoluteFillObject}
+              onBarcodeScanned={(e) => {
+                // ROI filter
+                const layout = cameraLayoutRef.current;
+                if (layout && e.cornerPoints && e.cornerPoints.length > 0) {
+                  const cx = e.cornerPoints.reduce((s, p) => s + p.x, 0) / e.cornerPoints.length;
+                  const cy = e.cornerPoints.reduce((s, p) => s + p.y, 0) / e.cornerPoints.length;
+                  const vfLeft = (layout.width - 260) / 2;
+                  const vfTop  = (layout.height - 120) / 2;
+                  if (cx < vfLeft || cx > vfLeft + 260 || cy < vfTop || cy > vfTop + 120) return;
+                }
+                if (scannedRef.current) return;
+                scannedRef.current = true;
+                setBarcode(e.data);
+                setCameraVisible(false);
+              }}
+              barcodeScannerSettings={{
+                barcodeTypes: ['ean13', 'ean8', 'code128', 'code39', 'qr'],
+              }}
+            />
+            <BarcodeViewfinder />
+          </View>
           <IconButton
             icon="close"
             iconColor="white"
