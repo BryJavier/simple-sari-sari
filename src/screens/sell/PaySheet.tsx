@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
-import { Modal, Portal, Surface, Text, Button, TextInput, SegmentedButtons, Snackbar } from 'react-native-paper';
+import { Modal, Portal, Text, Button, TextInput, SegmentedButtons, Snackbar } from 'react-native-paper';
 import { useCartStore, cartTotalCentavos } from '@/store/cart';
 import { useDatabase } from '@/db/DatabaseProvider';
 import { createSale, voidSale } from '@/db/queries/sales';
@@ -101,7 +101,7 @@ export function PaySheet({ visible, onDismiss, onSaleComplete }: PaySheetProps) 
         <Modal visible={visible} onDismiss={handleDismiss} contentContainerStyle={styles.container}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <ScrollView keyboardShouldPersistTaps="handled" bounces={false}>
-              <Surface style={styles.surface}>
+              <View style={[styles.surface, styles.surfaceView]}>
                 <Text variant="titleMedium" style={styles.title}>
                   Payment
                 </Text>
@@ -197,7 +197,7 @@ export function PaySheet({ visible, onDismiss, onSaleComplete }: PaySheetProps) 
                     Confirm
                   </Button>
                 </View>
-              </Surface>
+              </View>
             </ScrollView>
           </KeyboardAvoidingView>
         </Modal>
@@ -217,6 +217,7 @@ export function PaySheet({ visible, onDismiss, onSaleComplete }: PaySheetProps) 
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 24 },
   surface: { padding: 24, borderRadius: 16 },
+  surfaceView: { backgroundColor: palette.card },
   title: { marginBottom: 4 },
   total: { color: palette.accent, marginBottom: 16 },
   tabs: { marginBottom: 16 },
