@@ -10,15 +10,24 @@
       "resizeMode": "contain",
       "backgroundColor": "#ECEFF1"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "android": {
       "package": "com.sari.pos",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ECEFF1"
       },
-      "permissions": ["CAMERA"]
+      "permissions": [
+        "CAMERA"
+      ]
     },
-    "plugins": ["expo-sqlite", "expo-font"]
+    "plugins": [
+      "expo-sqlite",
+      "expo-font",
+      "expo-camera",
+      "expo-sharing"
+    ]
   }
 }
