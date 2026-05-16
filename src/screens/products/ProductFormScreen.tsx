@@ -26,6 +26,7 @@ import { parseMoney, formatMoneyShort, isValidMoneyInput } from '@/utils/money';
 import { palette } from '@/theme/palette';
 import type { ProductsStackParamList } from '@/navigation/types';
 import { BarcodeChooserSheet } from './BarcodeChooserSheet';
+import { BarcodeDisplaySheet } from './BarcodeDisplaySheet';
 
 type Nav = NativeStackNavigationProp<ProductsStackParamList, 'ProductForm'>;
 type Route = RouteProp<ProductsStackParamList, 'ProductForm'>;
@@ -45,6 +46,7 @@ export function ProductFormScreen() {
   const [archiveDialogVisible, setArchiveDialogVisible] = useState(false);
   const [barcodeChooserVisible, setBarcodeChooserVisible] = useState(false);
   const [cameraVisible, setCameraVisible] = useState(false);
+  const [barcodeDisplayVisible, setBarcodeDisplayVisible] = useState(false);
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
@@ -163,13 +165,20 @@ export function ProductFormScreen() {
               {barcode || 'Not set'}
             </Text>
           </View>
-          <Button
-            mode="outlined"
-            compact
-            onPress={() => setBarcodeChooserVisible(true)}
-          >
-            Choose
-          </Button>
+          <View style={styles.barcodeButtons}>
+            {barcode ? (
+              <Button compact mode="text" onPress={() => setBarcodeDisplayVisible(true)}>
+                View
+              </Button>
+            ) : null}
+            <Button
+              mode="outlined"
+              compact
+              onPress={() => setBarcodeChooserVisible(true)}
+            >
+              Choose
+            </Button>
+          </View>
         </View>
 
         <Button
@@ -255,6 +264,13 @@ export function ProductFormScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      {/* Barcode display sheet */}
+      <BarcodeDisplaySheet
+        visible={barcodeDisplayVisible}
+        value={barcode}
+        onDismiss={() => setBarcodeDisplayVisible(false)}
+      />
     </View>
   );
 }
@@ -275,6 +291,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   barcodeInfo: { flex: 1 },
+  barcodeButtons: { flexDirection: 'row', alignItems: 'center' },
   barcodeLabel: { color: palette.text3, marginBottom: 2 },
   barcodeValue: { color: palette.text, fontFamily: 'monospace' },
   barcodePlaceholder: { color: palette.muted },
