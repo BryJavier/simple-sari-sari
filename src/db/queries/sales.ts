@@ -1,4 +1,4 @@
-import type { Database, Product, TodaySummary, SaleWithItems, SaleItem } from '@/db/types';
+import type { Database, Product, TodaySummary, SaleWithItems } from '@/db/types';
 import { todayISO, dayBoundsLocalISO } from '@/utils/date';
 
 interface CartItemInput {
@@ -164,5 +164,5 @@ export async function getSaleWithItems(
     [saleId],
   );
   if (rows.length === 0) return null;
-  return rowsToSales(rows)[0];
+  return rowsToSales(rows)[0] ?? null;
 }
