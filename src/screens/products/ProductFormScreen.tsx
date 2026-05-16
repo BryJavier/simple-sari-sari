@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, ScrollView, View, StyleSheet } from 'react-native';
+import { Alert, ScrollView, View, StyleSheet, Keyboard } from 'react-native';
 import {
   Appbar,
   Button,
@@ -180,7 +180,10 @@ export function ProductFormScreen() {
             <Button
               mode="outlined"
               compact
-              onPress={() => setBarcodeChooserVisible(true)}
+              onPress={() => {
+                Keyboard.dismiss();
+                setBarcodeChooserVisible(true);
+              }}
             >
               Choose
             </Button>
