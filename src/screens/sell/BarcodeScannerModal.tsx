@@ -36,6 +36,7 @@ export function BarcodeScannerModal({
         debounceTimer.current = null;
       }
       scanningRef.current = false;
+      setSnackVisible(false);
       return;
     }
     if (permission?.granted) return;

@@ -38,7 +38,7 @@ export function SellScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      listActiveProducts(db).then(setProducts);
+      listActiveProducts(db).then(setProducts).catch(console.error);
     }, [db]),
   );
 
