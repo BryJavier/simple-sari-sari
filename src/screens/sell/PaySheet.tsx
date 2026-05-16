@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { Modal, Portal, Surface, Text, Button, TextInput, SegmentedButtons, Snackbar } from 'react-native-paper';
 import { useCartStore, cartTotalCentavos } from '@/store/cart';
 import { useDatabase } from '@/db/DatabaseProvider';
 import { createSale, voidSale } from '@/db/queries/sales';
-import { formatMoney } from '@/utils/money';
+import { formatMoney, parseMoney, isValidMoneyInput } from '@/utils/money';
 import { palette } from '@/theme/palette';
 
 interface PaySheetProps {
@@ -12,6 +12,12 @@ interface PaySheetProps {
   onDismiss: () => void;
   onSaleComplete: () => void;
 }
+
+const DENOMINATION_ROWS = [
+  [1, 5, 10],
+  [20, 50, 100],
+  [200, 500, 1000],
+] as const;
 
 export function PaySheet({ visible, onDismiss, onSaleComplete }: PaySheetProps) {
   const db = useDatabase();
@@ -22,9 +28,26 @@ export function PaySheet({ visible, onDismiss, onSaleComplete }: PaySheetProps) 
   const [loading, setLoading] = useState(false);
   const [snackVisible, setSnackVisible] = useState(false);
   const [lastSaleId, setLastSaleId] = useState<number | null>(null);
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [tenderedText, setTenderedText] = useState('');
 
   const total = cartTotalCentavos(items);
-  const canConfirm = !loading && (paymentType === 'cash' || customerName.trim().length > 0);
+  const tenderedCentavos = tenderedText !== '' ? parseMoney(tenderedText) : 0;
+  const changeCentavos = tenderedCentavos - total;
+
+  const canConfirm =
+    !loading &&
+    (paymentType === 'utang'
+      ? customerName.trim().length > 0
+      : tenderedText !== '' && tenderedCentavos >= total);
+
+  function handleDismiss() {
+    setTenderedText('');
+    setCustomerName('');
+    setCustomerPhone('');
+    setPaymentType('cash');
+    onDismiss();
+  }
 
   async function handleConfirm() {
     setLoading(true);
@@ -33,10 +56,16 @@ export function PaySheet({ visible, onDismiss, onSaleComplete }: PaySheetProps) 
         items,
         paymentType,
         customerName: paymentType === 'utang' ? customerName.trim() : undefined,
+        customerPhone:
+          paymentType === 'utang' && customerPhone.trim()
+            ? customerPhone.trim()
+            : undefined,
       });
       setLastSaleId(saleId);
       clearCart();
+      setTenderedText('');
       setCustomerName('');
+      setCustomerPhone('');
       setPaymentType('cash');
       onDismiss();
       onSaleComplete();
@@ -62,7 +91,7 @@ export function PaySheet({ visible, onDismiss, onSaleComplete }: PaySheetProps) 
   return (
     <>
       <Portal>
-        <Modal visible={visible} onDismiss={onDismiss} contentContainerStyle={styles.container}>
+        <Modal visible={visible} onDismiss={handleDismiss} contentContainerStyle={styles.container}>
           <Surface style={styles.surface}>
             <Text variant="titleMedium" style={styles.title}>
               Payment
@@ -79,17 +108,77 @@ export function PaySheet({ visible, onDismiss, onSaleComplete }: PaySheetProps) 
               ]}
               style={styles.tabs}
             />
+            {paymentType === 'cash' && (
+              <>
+                <Text style={styles.denomLabel}>Quick amount</Text>
+                <View style={styles.denomGrid}>
+                  {DENOMINATION_ROWS.map((row) => (
+                    <View key={row.join('-')} style={styles.denomRow}>
+                      {row.map((amount) => {
+                        const above = amount * 100 >= total;
+                        return (
+                          <Pressable
+                            key={amount}
+                            style={[
+                              styles.denomBtn,
+                              above ? styles.denomBtnAbove : styles.denomBtnBelow,
+                            ]}
+                            onPress={() => setTenderedText(String(amount))}
+                          >
+                            <Text style={styles.denomText}>₱{amount}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  ))}
+                </View>
+
+                <TextInput
+                  label="Amount tendered (₱)"
+                  value={tenderedText}
+                  onChangeText={(t) => {
+                    if (t === '' || isValidMoneyInput(t)) setTenderedText(t);
+                  }}
+                  keyboardType="decimal-pad"
+                  style={styles.input}
+                />
+
+                {tenderedText !== '' && (
+                  <View
+                    style={[
+                      styles.changeRow,
+                      changeCentavos >= 0 ? styles.changeRowOk : styles.changeRowShort,
+                    ]}
+                  >
+                    <Text style={changeCentavos >= 0 ? styles.changeTextOk : styles.changeTextShort}>
+                      {changeCentavos >= 0
+                        ? `Change ${formatMoney(changeCentavos)}`
+                        : `Short by ${formatMoney(-changeCentavos)}`}
+                    </Text>
+                  </View>
+                )}
+              </>
+            )}
             {paymentType === 'utang' && (
-              <TextInput
-                label="Customer name"
-                value={customerName}
-                onChangeText={setCustomerName}
-                style={styles.input}
-                autoFocus
-              />
+              <>
+                <TextInput
+                  label="Customer name"
+                  value={customerName}
+                  onChangeText={setCustomerName}
+                  style={styles.input}
+                  autoFocus
+                />
+                <TextInput
+                  label="Contact number — optional"
+                  value={customerPhone}
+                  onChangeText={setCustomerPhone}
+                  keyboardType="phone-pad"
+                  style={styles.input}
+                />
+              </>
             )}
             <View style={styles.actions}>
-              <Button onPress={onDismiss}>Cancel</Button>
+              <Button onPress={handleDismiss}>Cancel</Button>
               <Button
                 mode="contained"
                 onPress={handleConfirm}
@@ -122,4 +211,38 @@ const styles = StyleSheet.create({
   tabs: { marginBottom: 16 },
   input: { marginBottom: 16, backgroundColor: palette.surface },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 },
+  denomLabel: {
+    fontSize: 11,
+    color: palette.text3,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  denomGrid: { gap: 6, marginBottom: 12 },
+  denomRow: { flexDirection: 'row', gap: 6 },
+  denomBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  denomBtnAbove: { backgroundColor: palette.softBg, borderColor: palette.border },
+  denomBtnBelow: {
+    backgroundColor: palette.surface,
+    borderColor: palette.borderLight,
+    opacity: 0.4,
+  },
+  denomText: { fontSize: 14, fontWeight: '600', color: palette.primary },
+  changeRow: {
+    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+  },
+  changeRowOk: { backgroundColor: palette.successBg },
+  changeRowShort: { backgroundColor: '#FFEBEE' },
+  changeTextOk: { fontSize: 16, fontWeight: '700', color: palette.success },
+  changeTextShort: { fontSize: 16, fontWeight: '700', color: palette.danger },
 });
