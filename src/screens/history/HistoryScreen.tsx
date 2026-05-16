@@ -240,13 +240,13 @@ export function HistoryScreen() {
                 setQuickPickVisible(false);
                 setCalendarPickerVisible(true);
               }}
-              style={{ alignSelf: 'flex-start', marginTop: 8 }}
+              style={styles.quickPickExtra}
             >
               Pick a date…
             </Chip>
             <Chip
               onPress={() => setQuickPickVisible(false)}
-              style={{ alignSelf: 'flex-start', marginTop: 4 }}
+              style={styles.quickPickCancel}
             >
               Cancel
             </Chip>
@@ -307,4 +307,6 @@ const styles = StyleSheet.create({
   },
   quickPickTitle: { color: palette.text, marginBottom: 4 },
   quickPickChips: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  quickPickExtra: { alignSelf: 'flex-start', marginTop: 8 },
+  quickPickCancel: { alignSelf: 'flex-start', marginTop: 4 },
 });
