@@ -45,6 +45,33 @@ describe('createSale', () => {
     expect(sale?.customer_name).toBe('Aling Nena');
   });
 
+  it('stores customer_phone when provided for utang sale', async () => {
+    const saleId = await createSale(db, {
+      items: [{ product, quantity: 1 }],
+      paymentType: 'utang',
+      customerName: 'Aling Nena',
+      customerPhone: '09171234567',
+    });
+    const sale = await db.get<{ customer_phone: string | null }>(
+      'SELECT customer_phone FROM sales WHERE id = ?',
+      [saleId],
+    );
+    expect(sale?.customer_phone).toBe('09171234567');
+  });
+
+  it('stores NULL customer_phone when not provided', async () => {
+    const saleId = await createSale(db, {
+      items: [{ product, quantity: 1 }],
+      paymentType: 'utang',
+      customerName: 'Juan',
+    });
+    const sale = await db.get<{ customer_phone: string | null }>(
+      'SELECT customer_phone FROM sales WHERE id = ?',
+      [saleId],
+    );
+    expect(sale?.customer_phone).toBeNull();
+  });
+
   it('creates one sale_item per cart item', async () => {
     const saleId = await createSale(db, { items: [{ product, quantity: 2 }], paymentType: 'cash' });
     const items = await db.all<{ quantity: number; product_name: string; unit_price_centavos: number }>(

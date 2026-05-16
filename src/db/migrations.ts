@@ -1,7 +1,8 @@
 import type { Database } from '@/db/types';
 import { v1Schema } from '@/db/migrationFiles/v1';
+import { v2Migration } from '@/db/migrationFiles/v2';
 
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 const META_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS schema_meta (
@@ -33,4 +34,10 @@ export async function applyMigrations(db: Database): Promise<void> {
     await db.exec(v1Schema);
     await setSchemaVersion(db, 1);
   }
+
+  if (current < 2) {
+    await db.exec(v2Migration);
+    await setSchemaVersion(db, 2);
+  }
 }
+

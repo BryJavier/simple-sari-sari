@@ -8,7 +8,12 @@ interface CartItemInput {
 
 export async function createSale(
   db: Database,
-  input: { items: CartItemInput[]; paymentType: 'cash' | 'utang'; customerName?: string },
+  input: {
+    items: CartItemInput[];
+    paymentType: 'cash' | 'utang';
+    customerName?: string;
+    customerPhone?: string;
+  },
 ): Promise<number> {
   const totalCentavos = input.items.reduce(
     (sum, item) => sum + item.product.price_centavos * item.quantity,
@@ -17,8 +22,8 @@ export async function createSale(
 
   return db.transaction(async (tx) => {
     const { lastInsertRowid: saleId } = await tx.run(
-      'INSERT INTO sales (total_centavos, payment_type, customer_name, created_at) VALUES (?, ?, ?, ?)',
-      [totalCentavos, input.paymentType, input.customerName ?? null, todayISO()],
+      'INSERT INTO sales (total_centavos, payment_type, customer_name, customer_phone, created_at) VALUES (?, ?, ?, ?, ?)',
+      [totalCentavos, input.paymentType, input.customerName ?? null, input.customerPhone ?? null, todayISO()],
     );
 
     for (const item of input.items) {
