@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { Appbar, Searchbar } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAudioPlayer } from 'expo-audio';
 import { useDatabase } from '@/db/DatabaseProvider';
 import { listActiveProducts, seedSampleProducts } from '@/db/queries/products';
 import { useCartStore } from '@/store/cart';
@@ -26,6 +27,7 @@ export function SellScreen() {
   const db = useDatabase();
   const isTablet = useIsTablet();
   const addItem = useCartStore((s) => s.addItem);
+  const beepPlayer = useAudioPlayer(require('../../assets/sounds/beep.wav'));
 
   const [products, setProducts] = useState<Product[]>([]);
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
@@ -83,7 +85,10 @@ export function SellScreen() {
           />
           <CatalogGrid
             products={filteredProducts}
-            onPress={(p) => addItem(p)}
+            onPress={(p) => {
+              addItem(p);
+              try { beepPlayer.seekTo(0); beepPlayer.play(); } catch {}
+            }}
             onLongPress={(p) => setPreviewProduct(p)}
           />
         </View>
