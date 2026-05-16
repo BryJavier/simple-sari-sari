@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { Modal, Portal, Surface, Text, Button, TextInput, SegmentedButtons, Snackbar } from 'react-native-paper';
 import { useCartStore, cartTotalCentavos } from '@/store/cart';
 import { useDatabase } from '@/db/DatabaseProvider';
@@ -99,103 +99,107 @@ export function PaySheet({ visible, onDismiss, onSaleComplete }: PaySheetProps) 
     <>
       <Portal>
         <Modal visible={visible} onDismiss={handleDismiss} contentContainerStyle={styles.container}>
-          <Surface style={styles.surface}>
-            <Text variant="titleMedium" style={styles.title}>
-              Payment
-            </Text>
-            <Text variant="headlineSmall" style={styles.total}>
-              {formatMoney(total)}
-            </Text>
-            <SegmentedButtons
-              value={paymentType}
-              onValueChange={(v) => setPaymentType(v as 'cash' | 'utang')}
-              buttons={[
-                { value: 'cash', label: 'Cash' },
-                { value: 'utang', label: 'Utang' },
-              ]}
-              style={styles.tabs}
-            />
-            {paymentType === 'cash' && (
-              <>
-                <Text style={styles.denomLabel}>Quick amount</Text>
-                <View style={styles.denomGrid}>
-                  {DENOMINATION_ROWS.map((row) => (
-                    <View key={row.join('-')} style={styles.denomRow}>
-                      {row.map((amount) => {
-                        const above = amount * 100 >= total;
-                        return (
-                          <Pressable
-                            key={amount}
-                            style={[
-                              styles.denomBtn,
-                              above ? styles.denomBtnAbove : styles.denomBtnBelow,
-                            ]}
-                            onPress={() => setTenderedText(String(amount))}
-                          >
-                            <Text style={styles.denomText}>₱{amount}</Text>
-                          </Pressable>
-                        );
-                      })}
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <ScrollView keyboardShouldPersistTaps="handled" bounces={false}>
+              <Surface style={styles.surface}>
+                <Text variant="titleMedium" style={styles.title}>
+                  Payment
+                </Text>
+                <Text variant="headlineSmall" style={styles.total}>
+                  {formatMoney(total)}
+                </Text>
+                <SegmentedButtons
+                  value={paymentType}
+                  onValueChange={(v) => setPaymentType(v as 'cash' | 'utang')}
+                  buttons={[
+                    { value: 'cash', label: 'Cash' },
+                    { value: 'utang', label: 'Utang' },
+                  ]}
+                  style={styles.tabs}
+                />
+                {paymentType === 'cash' && (
+                  <>
+                    <Text style={styles.denomLabel}>Quick amount</Text>
+                    <View style={styles.denomGrid}>
+                      {DENOMINATION_ROWS.map((row) => (
+                        <View key={row.join('-')} style={styles.denomRow}>
+                          {row.map((amount) => {
+                            const above = amount * 100 >= total;
+                            return (
+                              <Pressable
+                                key={amount}
+                                style={[
+                                  styles.denomBtn,
+                                  above ? styles.denomBtnAbove : styles.denomBtnBelow,
+                                ]}
+                                onPress={() => setTenderedText(String(amount))}
+                              >
+                                <Text style={styles.denomText}>₱{amount}</Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      ))}
                     </View>
-                  ))}
-                </View>
 
-                <TextInput
-                  label="Amount tendered (₱)"
-                  value={tenderedText}
-                  onChangeText={(t) => {
-                    if (t === '' || isValidMoneyInput(t)) setTenderedText(t);
-                  }}
-                  keyboardType="decimal-pad"
-                  style={styles.input}
-                />
+                    <TextInput
+                      label="Amount tendered (₱)"
+                      value={tenderedText}
+                      onChangeText={(t) => {
+                        if (t === '' || isValidMoneyInput(t)) setTenderedText(t);
+                      }}
+                      keyboardType="decimal-pad"
+                      style={styles.input}
+                    />
 
-                {tenderedText !== '' && (
-                  <View
-                    style={[
-                      styles.changeRow,
-                      changeCentavos >= 0 ? styles.changeRowOk : styles.changeRowShort,
-                    ]}
-                  >
-                    <Text style={changeCentavos >= 0 ? styles.changeTextOk : styles.changeTextShort}>
-                      {changeCentavos >= 0
-                        ? `Change ${formatMoney(changeCentavos)}`
-                        : `Short by ${formatMoney(-changeCentavos)}`}
-                    </Text>
-                  </View>
+                    {tenderedText !== '' && (
+                      <View
+                        style={[
+                          styles.changeRow,
+                          changeCentavos >= 0 ? styles.changeRowOk : styles.changeRowShort,
+                        ]}
+                      >
+                        <Text style={changeCentavos >= 0 ? styles.changeTextOk : styles.changeTextShort}>
+                          {changeCentavos >= 0
+                            ? `Change ${formatMoney(changeCentavos)}`
+                            : `Short by ${formatMoney(-changeCentavos)}`}
+                        </Text>
+                      </View>
+                    )}
+                  </>
                 )}
-              </>
-            )}
-            {paymentType === 'utang' && (
-              <>
-                <TextInput
-                  label="Customer name"
-                  value={customerName}
-                  onChangeText={setCustomerName}
-                  style={styles.input}
-                  autoFocus
-                />
-                <TextInput
-                  label="Contact number — optional"
-                  value={customerPhone}
-                  onChangeText={setCustomerPhone}
-                  keyboardType="phone-pad"
-                  style={styles.input}
-                />
-              </>
-            )}
-            <View style={styles.actions}>
-              <Button onPress={handleDismiss}>Cancel</Button>
-              <Button
-                mode="contained"
-                onPress={handleConfirm}
-                loading={loading}
-                disabled={!canConfirm}
-              >
-                Confirm
-              </Button>
-            </View>
-          </Surface>
+                {paymentType === 'utang' && (
+                  <>
+                    <TextInput
+                      label="Customer name"
+                      value={customerName}
+                      onChangeText={setCustomerName}
+                      style={styles.input}
+                      autoFocus
+                    />
+                    <TextInput
+                      label="Contact number — optional"
+                      value={customerPhone}
+                      onChangeText={setCustomerPhone}
+                      keyboardType="phone-pad"
+                      style={styles.input}
+                    />
+                  </>
+                )}
+                <View style={styles.actions}>
+                  <Button onPress={handleDismiss}>Cancel</Button>
+                  <Button
+                    mode="contained"
+                    onPress={handleConfirm}
+                    loading={loading}
+                    disabled={!canConfirm}
+                  >
+                    Confirm
+                  </Button>
+                </View>
+              </Surface>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </Modal>
       </Portal>
       <Snackbar
