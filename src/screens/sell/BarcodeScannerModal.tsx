@@ -21,6 +21,8 @@ export function BarcodeScannerModal({
 }: BarcodeScannerModalProps) {
   const items = useCartStore((s) => s.items);
   const addItem = useCartStore((s) => s.addItem);
+  const incrementItem = useCartStore((s) => s.incrementItem);
+  const decrementItem = useCartStore((s) => s.decrementItem);
   const [permission, requestPermission] = useCameraPermissions();
   const [snackVisible, setSnackVisible] = useState(false);
   const lastScannedRef = useRef<string | null>(null);
@@ -140,11 +142,23 @@ export function BarcodeScannerModal({
             <ScrollView style={styles.cartScroll}>
               {items.map((item) => (
                 <View key={item.product.id} style={styles.cartRow}>
-                  <View style={styles.cartRowInfo}>
-                    <Text style={styles.cartItemName}>{item.product.name}</Text>
-                    <Text style={styles.cartItemDetail}>
-                      {formatMoney(item.product.price_centavos)} × {item.quantity}
-                    </Text>
+                  <Text style={styles.cartItemName} numberOfLines={1}>
+                    {item.product.name}
+                  </Text>
+                  <View style={styles.cartQtyRow}>
+                    <IconButton
+                      icon="minus"
+                      size={16}
+                      iconColor={palette.text}
+                      onPress={() => decrementItem(item.product.id)}
+                    />
+                    <Text style={styles.cartQtyText}>{item.quantity}</Text>
+                    <IconButton
+                      icon="plus"
+                      size={16}
+                      iconColor={palette.text}
+                      onPress={() => incrementItem(item.product.id)}
+                    />
                   </View>
                   <Text style={styles.cartItemTotal}>
                     {formatMoney(item.product.price_centavos * item.quantity)}
@@ -195,16 +209,15 @@ const styles = StyleSheet.create({
   cartScroll: { flex: 1 },
   cartRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingLeft: 16,
+    paddingRight: 4,
     borderBottomWidth: 1,
     borderBottomColor: palette.borderLight,
   },
-  cartRowInfo: { flex: 1 },
-  cartItemName: { fontSize: 14, fontWeight: '600', color: palette.text },
-  cartItemDetail: { fontSize: 12, color: palette.text3, marginTop: 2 },
+  cartItemName: { flex: 1, fontSize: 13, fontWeight: '600', color: palette.text },
+  cartQtyRow: { flexDirection: 'row', alignItems: 'center' },
+  cartQtyText: { fontSize: 13, fontWeight: '600', color: palette.text, minWidth: 20, textAlign: 'center' },
   cartItemTotal: { fontSize: 14, fontWeight: '600', color: palette.primary },
   doneBtn: { backgroundColor: palette.primary, paddingVertical: 14 },
   doneBtnText: {
