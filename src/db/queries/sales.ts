@@ -1,4 +1,4 @@
-import type { Database, Product, TodaySummary } from '@/db/types';
+import type { Database, Product, TodaySummary, SaleWithItems, SaleItem } from '@/db/types';
 import { todayISO, dayBoundsLocalISO } from '@/utils/date';
 
 interface CartItemInput {
@@ -72,4 +72,97 @@ export async function todaySalesSummary(db: Database): Promise<TodaySummary> {
     totalCentavos: salesRow?.total_centavos ?? 0,
     profitCentavos: profitRow?.profit_centavos ?? 0,
   };
+}
+
+type SaleJoinRow = {
+  sale_id: number;
+  total_centavos: number;
+  payment_type: 'cash' | 'utang';
+  customer_name: string | null;
+  customer_phone: string | null;
+  voided_at: string | null;
+  sale_created_at: string;
+  item_id: number | null;
+  product_id: number | null;
+  product_name: string | null;
+  unit_price_centavos: number | null;
+  unit_cost_centavos: number | null;
+  quantity: number | null;
+};
+
+function rowsToSales(rows: SaleJoinRow[]): SaleWithItems[] {
+  const map = new Map<number, SaleWithItems>();
+  for (const row of rows) {
+    if (!map.has(row.sale_id)) {
+      map.set(row.sale_id, {
+        id: row.sale_id,
+        total_centavos: row.total_centavos,
+        payment_type: row.payment_type,
+        customer_name: row.customer_name,
+        customer_phone: row.customer_phone,
+        voided_at: row.voided_at,
+        created_at: row.sale_created_at,
+        items: [],
+      });
+    }
+    if (row.item_id !== null) {
+      map.get(row.sale_id)!.items.push({
+        id: row.item_id,
+        sale_id: row.sale_id,
+        product_id: row.product_id!,
+        product_name: row.product_name!,
+        unit_price_centavos: row.unit_price_centavos!,
+        unit_cost_centavos: row.unit_cost_centavos,
+        quantity: row.quantity!,
+      });
+    }
+  }
+  return Array.from(map.values());
+}
+
+const SALE_JOIN_SQL = `
+  SELECT
+    s.id            AS sale_id,
+    s.total_centavos,
+    s.payment_type,
+    s.customer_name,
+    s.customer_phone,
+    s.voided_at,
+    s.created_at    AS sale_created_at,
+    si.id           AS item_id,
+    si.product_id,
+    si.product_name,
+    si.unit_price_centavos,
+    si.unit_cost_centavos,
+    si.quantity
+  FROM sales s
+  LEFT JOIN sale_items si ON si.sale_id = s.id
+`;
+
+export async function listSalesByDate(
+  db: Database,
+  date: Date,
+): Promise<SaleWithItems[]> {
+  const { start, end } = dayBoundsLocalISO(date);
+  const rows = await db.all<SaleJoinRow>(
+    `${SALE_JOIN_SQL}
+     WHERE s.created_at >= ? AND s.created_at <= ?
+     ORDER BY s.created_at DESC, s.id DESC, si.id ASC`,
+    [start, end],
+  );
+  return rowsToSales(rows);
+}
+
+export async function getSaleWithItems(
+  db: Database,
+  saleId: number,
+): Promise<SaleWithItems | null> {
+  const rows = await db.all<SaleJoinRow>(
+    `${SALE_JOIN_SQL}
+     WHERE s.id = ?
+     ORDER BY si.id ASC`,
+    [saleId],
+  );
+  if (rows.length === 0) return null;
+  return rowsToSales(rows)[0];
 }

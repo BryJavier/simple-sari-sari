@@ -25,3 +25,38 @@ export interface TodaySummary {
   totalCentavos: number;
   profitCentavos: number;
 }
+
+export interface SaleItem {
+  id: number;
+  sale_id: number;
+  product_id: number;
+  product_name: string;
+  unit_price_centavos: number;
+  unit_cost_centavos: number | null;
+  quantity: number;
+}
+
+export interface SaleWithItems {
+  id: number;
+  total_centavos: number;
+  payment_type: 'cash' | 'utang';
+  customer_name: string | null;
+  customer_phone: string | null;
+  voided_at: string | null;
+  created_at: string;
+  items: SaleItem[];
+}
+
+export interface UtangCustomer {
+  customer_name: string;
+  customer_phone: string | null;
+  total_owed_centavos: number;
+}
+
+export interface UnpaidSale {
+  id: number;
+  total_centavos: number;
+  created_at: string;
+  paid_centavos: number;
+  balance_centavos: number;
+}
