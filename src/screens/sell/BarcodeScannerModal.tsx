@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Modal, Portal, Text, Snackbar, IconButton } from 'react-native-paper';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useAudioPlayer } from 'expo-audio';
 import { useCartStore, cartTotalCentavos } from '@/store/cart';
 import { formatMoney } from '@/utils/money';
-import { palette } from '@/theme/palette';
+import { useAppPalette } from '@/theme/useAppPalette';
 import type { Product } from '@/db/types';
 import { BarcodeViewfinder } from '@/components/BarcodeViewfinder';
 
@@ -15,11 +15,9 @@ interface BarcodeScannerModalProps {
   onDismiss: () => void;
 }
 
-export function BarcodeScannerModal({
-  visible,
-  products,
-  onDismiss,
-}: BarcodeScannerModalProps) {
+export function BarcodeScannerModal({ visible, products, onDismiss }: BarcodeScannerModalProps) {
+  const palette = useAppPalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const items = useCartStore((s) => s.items);
   const addItem = useCartStore((s) => s.addItem);
   const incrementItem = useCartStore((s) => s.incrementItem);
@@ -48,10 +46,7 @@ export function BarcodeScannerModal({
       return;
     }
     if (permission?.granted) return;
-    requestPermission().then((result) => {
-      if (!result.granted) onDismissRef.current();
-    });
-    // intentionally only re-runs when the modal opens
+    requestPermission().then((result) => { if (!result.granted) onDismissRef.current(); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
@@ -59,11 +54,7 @@ export function BarcodeScannerModal({
 
   return (
     <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={onDismiss}
-        contentContainerStyle={StyleSheet.absoluteFillObject}
-      >
+      <Modal visible={visible} onDismiss={onDismiss} contentContainerStyle={StyleSheet.absoluteFillObject}>
         <View style={styles.root}>
           {/* Top half: live camera */}
           <View
@@ -91,7 +82,6 @@ export function BarcodeScannerModal({
                   const trimmed = e.data.trim();
                   if (lastScannedRef.current === trimmed) return;
                   lastScannedRef.current = trimmed;
-
                   const product = products.find((p) => p.barcode === trimmed);
                   if (!product) {
                     setSnackVisible(true);
@@ -101,14 +91,9 @@ export function BarcodeScannerModal({
                   }
 
                   if (debounceTimer.current) clearTimeout(debounceTimer.current);
-                  debounceTimer.current = setTimeout(() => {
-                    lastScannedRef.current = null;
-                    debounceTimer.current = null;
-                  }, 3000);
+                  debounceTimer.current = setTimeout(() => { lastScannedRef.current = null; debounceTimer.current = null; }, 3000);
                 }}
-                barcodeScannerSettings={{
-                  barcodeTypes: ['ean13', 'ean8', 'code128', 'code39', 'qr'],
-                }}
+                barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'code128', 'code39', 'qr'] }}
               />
             )}
             <BarcodeViewfinder />
@@ -129,13 +114,9 @@ export function BarcodeScannerModal({
               onPress={onDismiss}
             />
           </View>
-
-          {/* Bottom half: scrollable cart list */}
           <View style={styles.cartHalf}>
             <View style={styles.cartHeader}>
-              <Text style={styles.cartHeaderText}>
-                Cart · {items.length} item{items.length !== 1 ? 's' : ''}
-              </Text>
+              <Text style={styles.cartHeaderText}>Cart · {items.length} item{items.length !== 1 ? 's' : ''}</Text>
             </View>
             <ScrollView style={styles.cartScroll}>
               {items.map((item) => (
@@ -158,9 +139,7 @@ export function BarcodeScannerModal({
                       onPress={() => incrementItem(item.product.id)}
                     />
                   </View>
-                  <Text style={styles.cartItemTotal}>
-                    {formatMoney(item.product.price_centavos * item.quantity)}
-                  </Text>
+                  <Text style={styles.cartItemTotal}>{formatMoney(item.product.price_centavos * item.quantity)}</Text>
                 </View>
               ))}
             </ScrollView>
@@ -170,64 +149,27 @@ export function BarcodeScannerModal({
           </View>
         </View>
       </Modal>
-
-      <Snackbar
-        visible={snackVisible}
-        onDismiss={() => setSnackVisible(false)}
-        duration={2000}
-      >
-        Barcode not found
-      </Snackbar>
+      <Snackbar visible={snackVisible} onDismiss={() => setSnackVisible(false)} duration={2000}>Barcode not found</Snackbar>
     </Portal>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000' },
-  cameraHalf: { flex: 1 },
-  closeBtn: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  torchBtn: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  cartHalf: { flex: 1, backgroundColor: palette.card },
-  cartHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.borderLight,
-  },
-  cartHeaderText: {
-    fontSize: 11,
-    color: palette.text3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  cartScroll: { flex: 1 },
-  cartRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingLeft: 16,
-    paddingRight: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.borderLight,
-  },
-  cartItemName: { flex: 1, fontSize: 13, fontWeight: '600', color: palette.text },
-  cartQtyRow: { flexDirection: 'row', alignItems: 'center' },
-  cartQtyText: { fontSize: 13, fontWeight: '600', color: palette.text, minWidth: 20, textAlign: 'center' },
-  cartItemTotal: { fontSize: 14, fontWeight: '600', color: palette.primary },
-  doneBtn: { backgroundColor: palette.primary, paddingVertical: 14 },
-  doneBtnText: {
-    color: palette.card,
-    textAlign: 'center',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-});
+function makeStyles(p: ReturnType<typeof useAppPalette>) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: '#000' },
+    cameraHalf: { flex: 1 },
+    closeBtn: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.4)' },
+    torchBtn: { position: 'absolute', bottom: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.4)' },
+    cartHalf: { flex: 1, backgroundColor: p.card },
+    cartHeader: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: p.borderLight },
+    cartHeaderText: { fontSize: 11, color: p.text3, textTransform: 'uppercase', letterSpacing: 0.5 },
+    cartScroll: { flex: 1 },
+    cartRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 4, borderBottomWidth: 1, borderBottomColor: p.borderLight },
+    cartItemName: { flex: 1, fontSize: 13, fontWeight: '600', color: p.text },
+    cartQtyRow: { flexDirection: 'row', alignItems: 'center' },
+    cartQtyText: { fontSize: 13, fontWeight: '600', color: p.text, minWidth: 20, textAlign: 'center' },
+    cartItemTotal: { fontSize: 14, fontWeight: '600', color: p.primary },
+    doneBtn: { backgroundColor: p.primary, paddingVertical: 14 },
+    doneBtnText: { color: p.card, textAlign: 'center', fontSize: 15, fontWeight: '600' },
+  });
+}

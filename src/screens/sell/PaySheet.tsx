@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { Modal, Portal, Text, Button, TextInput, SegmentedButtons, Snackbar } from 'react-native-paper';
 import { useCartStore, cartTotalCentavos } from '@/store/cart';
 import { useDatabase } from '@/db/DatabaseProvider';
 import { createSale, voidSale } from '@/db/queries/sales';
 import { formatMoney, parseMoney, isValidMoneyInput } from '@/utils/money';
-import { palette } from '@/theme/palette';
+import { useAppPalette } from '@/theme/useAppPalette';
 
 interface PaySheetProps {
   visible: boolean;
@@ -21,6 +21,8 @@ const DENOMINATION_ROWS = [
 
 export function PaySheet({ visible, onDismiss, onSaleComplete }: PaySheetProps) {
   const db = useDatabase();
+  const palette = useAppPalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const items = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clearCart);
   const [paymentType, setPaymentType] = useState<'cash' | 'utang'>('cash');
@@ -34,25 +36,17 @@ export function PaySheet({ visible, onDismiss, onSaleComplete }: PaySheetProps) 
   const total = cartTotalCentavos(items);
   const tenderedCentavos = (() => {
     if (tenderedText === '') return 0;
-    try {
-      return parseMoney(tenderedText);
-    } catch {
-      return 0;
-    }
+    try { return parseMoney(tenderedText); } catch { return 0; }
   })();
   const changeCentavos = tenderedCentavos - total;
-
-  const canConfirm =
-    !loading &&
-    (paymentType === 'utang'
+  const canConfirm = !loading && (
+    paymentType === 'utang'
       ? customerName.trim().length > 0
-      : tenderedText !== '' && tenderedCentavos >= total);
+      : tenderedText !== '' && tenderedCentavos >= total
+  );
 
   function handleDismiss() {
-    setTenderedText('');
-    setCustomerName('');
-    setCustomerPhone('');
-    setPaymentType('cash');
+    setTenderedText(''); setCustomerName(''); setCustomerPhone(''); setPaymentType('cash');
     onDismiss();
   }
 
@@ -60,37 +54,20 @@ export function PaySheet({ visible, onDismiss, onSaleComplete }: PaySheetProps) 
     setLoading(true);
     try {
       const saleId = await createSale(db, {
-        items,
-        paymentType,
+        items, paymentType,
         customerName: paymentType === 'utang' ? customerName.trim() : undefined,
-        customerPhone:
-          paymentType === 'utang' && customerPhone.trim()
-            ? customerPhone.trim()
-            : undefined,
+        customerPhone: paymentType === 'utang' && customerPhone.trim() ? customerPhone.trim() : undefined,
       });
       setLastSaleId(saleId);
-      clearCart();
-      setTenderedText('');
-      setCustomerName('');
-      setCustomerPhone('');
-      setPaymentType('cash');
-      onDismiss();
-      onSaleComplete();
-      setSnackVisible(true);
-    } finally {
-      setLoading(false);
-    }
+      clearCart(); setTenderedText(''); setCustomerName(''); setCustomerPhone(''); setPaymentType('cash');
+      onDismiss(); onSaleComplete(); setSnackVisible(true);
+    } finally { setLoading(false); }
   }
 
   async function handleUndo() {
     if (lastSaleId !== null) {
-      try {
-        await voidSale(db, lastSaleId);
-        setLastSaleId(null);
-        onSaleComplete();
-      } catch (e) {
-        console.error('Failed to void sale', e);
-      }
+      try { await voidSale(db, lastSaleId); setLastSaleId(null); onSaleComplete(); }
+      catch (e) { console.error('Failed to void sale', e); }
     }
     setSnackVisible(false);
   }
@@ -202,59 +179,56 @@ export function PaySheet({ visible, onDismiss, onSaleComplete }: PaySheetProps) 
           </KeyboardAvoidingView>
         </Modal>
       </Portal>
-      <Snackbar
-        visible={snackVisible}
-        onDismiss={() => setSnackVisible(false)}
-        duration={5000}
-        action={{ label: 'Undo', onPress: handleUndo }}
-      >
+      <Snackbar visible={snackVisible} onDismiss={() => setSnackVisible(false)} duration={5000} action={{ label: 'Undo', onPress: handleUndo }}>
         Sale recorded
       </Snackbar>
     </>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { paddingHorizontal: 24 },
-  surface: { padding: 24, borderRadius: 16 },
-  surfaceView: { backgroundColor: palette.card },
-  title: { marginBottom: 4 },
-  total: { color: palette.accent, marginBottom: 16 },
-  tabs: { marginBottom: 16 },
-  input: { marginBottom: 16, backgroundColor: palette.surface },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 },
-  denomLabel: {
-    fontSize: 11,
-    color: palette.text3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 6,
-  },
-  denomGrid: { gap: 6, marginBottom: 12 },
-  denomRow: { flexDirection: 'row', gap: 6 },
-  denomBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  denomBtnAbove: { backgroundColor: palette.softBg, borderColor: palette.border },
-  denomBtnBelow: {
-    backgroundColor: palette.surface,
-    borderColor: palette.borderLight,
-    opacity: 0.4,
-  },
-  denomText: { fontSize: 14, fontWeight: '600', color: palette.primary },
-  changeRow: {
-    borderRadius: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginBottom: 12,
-  },
-  changeRowOk: { backgroundColor: palette.successBg },
-  changeRowShort: { backgroundColor: '#FFEBEE' },
-  changeTextOk: { fontSize: 16, fontWeight: '700', color: palette.success },
-  changeTextShort: { fontSize: 16, fontWeight: '700', color: palette.danger },
-});
+function makeStyles(p: ReturnType<typeof useAppPalette>) {
+  return StyleSheet.create({
+    container: { paddingHorizontal: 24 },
+    surface: { padding: 24, borderRadius: 16 },
+    surfaceView: { backgroundColor: p.card },
+    title: { marginBottom: 4 },
+    total: { color: p.accent, marginBottom: 16 },
+    tabs: { marginBottom: 16 },
+    input: { marginBottom: 16, backgroundColor: p.surface },
+    actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 },
+    denomLabel: {
+      fontSize: 11,
+      color: p.text3,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 6,
+    },
+    denomGrid: { gap: 6, marginBottom: 12 },
+    denomRow: { flexDirection: 'row', gap: 6 },
+    denomBtn: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+    },
+    denomBtnAbove: { backgroundColor: p.softBg, borderColor: p.border },
+    denomBtnBelow: {
+      backgroundColor: p.surface,
+      borderColor: p.borderLight,
+      opacity: 0.4,
+    },
+    denomText: { fontSize: 14, fontWeight: '600', color: p.primary },
+    changeRow: {
+      borderRadius: 6,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      marginBottom: 12,
+    },
+    changeRowOk: { backgroundColor: p.successBg },
+    changeRowShort: { backgroundColor: '#FFEBEE' },
+    changeTextOk: { fontSize: 16, fontWeight: '700', color: p.success },
+    changeTextShort: { fontSize: 16, fontWeight: '700', color: p.danger },
+  });
+}

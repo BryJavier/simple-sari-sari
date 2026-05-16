@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Appbar, Searchbar } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -8,7 +8,7 @@ import { useDatabase } from '@/db/DatabaseProvider';
 import { listActiveProducts, seedSampleProducts } from '@/db/queries/products';
 import { useCartStore } from '@/store/cart';
 import { useIsTablet } from '@/utils/layout';
-import { palette } from '@/theme/palette';
+import { useAppPalette } from '@/theme/useAppPalette';
 import type { RootStackParamList } from '@/navigation/types';
 import type { Product } from '@/db/types';
 import { TodayCards } from './TodayCards';
@@ -26,6 +26,8 @@ export function SellScreen() {
   const navigation = useNavigation<RootNav>();
   const db = useDatabase();
   const isTablet = useIsTablet();
+  const palette = useAppPalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const addItem = useCartStore((s) => s.addItem);
   const beepPlayer = useAudioPlayer(require('../../../assets/sounds/beep.wav'));
 
@@ -37,9 +39,7 @@ export function SellScreen() {
   const [summaryKey, setSummaryKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    void seedSampleProducts(db);
-  }, [db]);
+  useEffect(() => { void seedSampleProducts(db); }, [db]);
 
   useFocusEffect(
     useCallback(() => {
@@ -47,9 +47,7 @@ export function SellScreen() {
     }, [db]),
   );
 
-  const handleSaleComplete = useCallback(() => {
-    setSummaryKey((k) => k + 1);
-  }, []);
+  const handleSaleComplete = useCallback(() => { setSummaryKey((k) => k + 1); }, []);
 
   const filteredProducts = searchQuery.trim()
     ? products.filter((p) =>
@@ -61,18 +59,9 @@ export function SellScreen() {
     <View style={styles.root}>
       <Appbar.Header>
         <Appbar.Content title="Sell" />
-        <Appbar.Action
-          icon="barcode-scan"
-          onPress={() => setScannerVisible(true)}
-          accessibilityLabel="Scan barcode"
-        />
-        <Appbar.Action
-          icon="cog"
-          onPress={() => navigation.navigate('Settings')}
-          accessibilityLabel="Settings"
-        />
+        <Appbar.Action icon="barcode-scan" onPress={() => setScannerVisible(true)} accessibilityLabel="Scan barcode" />
+        <Appbar.Action icon="cog" onPress={() => navigation.navigate('Settings')} accessibilityLabel="Settings" />
       </Appbar.Header>
-
       <View style={[styles.body, isTablet && styles.bodyTablet]}>
         <View style={styles.main}>
           <TodayCards refreshKey={summaryKey} />
@@ -94,49 +83,29 @@ export function SellScreen() {
         </View>
         {isTablet && <CartPane onPay={() => setPayVisible(true)} />}
       </View>
-
+      {!isTablet && <CartBar onPay={() => setPayVisible(true)} onViewCart={() => setCartSheetVisible(true)} />}
+      <ProductPreviewSheet product={previewProduct} onDismiss={() => setPreviewProduct(null)} />
+      <PaySheet visible={payVisible} onDismiss={() => setPayVisible(false)} onSaleComplete={handleSaleComplete} />
+      <BarcodeScannerModal visible={scannerVisible} products={products} onDismiss={() => setScannerVisible(false)} />
       {!isTablet && (
-        <CartBar
-          onPay={() => setPayVisible(true)}
-          onViewCart={() => setCartSheetVisible(true)}
-        />
-      )}
-
-      <ProductPreviewSheet
-        product={previewProduct}
-        onDismiss={() => setPreviewProduct(null)}
-      />
-      <PaySheet
-        visible={payVisible}
-        onDismiss={() => setPayVisible(false)}
-        onSaleComplete={handleSaleComplete}
-      />
-      <BarcodeScannerModal
-        visible={scannerVisible}
-        products={products}
-        onDismiss={() => setScannerVisible(false)}
-      />
-      {!isTablet && (
-        <CartSheet
-          visible={cartSheetVisible}
-          onDismiss={() => setCartSheetVisible(false)}
-          onPay={() => setPayVisible(true)}
-        />
+        <CartSheet visible={cartSheetVisible} onDismiss={() => setCartSheetVisible(false)} onPay={() => setPayVisible(true)} />
       )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: palette.surface },
-  body: { flex: 1 },
-  bodyTablet: { flexDirection: 'row' },
-  main: { flex: 1 },
-  searchBar: {
-    marginHorizontal: 8,
-    marginBottom: 4,
-    elevation: 0,
-    backgroundColor: palette.card,
-  },
-  searchInput: { fontSize: 14 },
-});
+function makeStyles(p: ReturnType<typeof useAppPalette>) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: p.surface },
+    body: { flex: 1 },
+    bodyTablet: { flexDirection: 'row' },
+    main: { flex: 1 },
+    searchBar: {
+      marginHorizontal: 8,
+      marginBottom: 4,
+      elevation: 0,
+      backgroundColor: p.card,
+    },
+    searchInput: { fontSize: 14 },
+  });
+}

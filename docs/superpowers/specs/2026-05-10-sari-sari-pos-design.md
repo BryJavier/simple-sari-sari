@@ -217,7 +217,21 @@ CREATE TABLE settings (
 
 `sale_items.product_name`, `unit_price_centavos`, and `unit_cost_centavos` are copied from the `products` row at sale time. Renaming/repricing a product **does not rewrite history**. Receipts and historical totals stay accurate.
 
-### 4.5 Soft-delete policy
+### 4.5 Known settings keys
+
+All settings are stored as TEXT in the `settings` key/value table. New keys are inserted on first write; missing keys fall back to the hardcoded defaults below.
+
+| Key | Values | Default | Notes |
+|---|---|---|---|
+| `text_size` | `"small"` \| `"medium"` \| `"large"` \| `"xlarge"` | `"medium"` | Font scale multiplier (see §8) |
+| `catalog_density` | `"compact"` \| `"comfortable"` \| `"spacious"` | `"comfortable"` | Grid column count (see §8) |
+| `theme_preset` | `"default"` \| `"ocean"` \| `"forest"` \| `"rose"` \| `"sunset"` \| `"custom"` | `"default"` | Active palette; `"custom"` uses `theme_custom_hue` |
+| `theme_custom_hue` | Integer `0`–`359` as string | `"210"` | Only meaningful when `theme_preset = "custom"`. Defaults to 210° (Ocean blue) |
+| `theme_dark_mode` | `"0"` \| `"1"` | `"0"` | `"1"` = dark mode on. Independent of palette choice. |
+| `store_name` | Any string | `""` | Displayed in top bar and backup metadata |
+| `last_backup_at` | ISO-8601 string | `""` | Used for the 14-day backup nudge (see §9.4) |
+
+### 4.6 Soft-delete policy
 
 - `products.archived_at` set on delete; product hidden from catalog but referenced in past sales.
 - `sales.voided_at` set on void; sale stays visible in History (struck through, faded) but excluded from totals.
@@ -404,24 +418,54 @@ Phone and tablet share the same components but compose differently.
 
 ## 7. Theme & typography
 
-### 7.1 Palette (light, senior-friendly grey/white)
+### 7.1 Customizable theme system
 
-| Token | Hex | Use |
-|---|---|---|
-| `text` | `#212121` | Primary text |
-| `text2` | `#263238` | Headers |
-| `text3` | `#616161` | Secondary text |
-| `primary` | `#455A64` | Cart bar, primary buttons, active tab indicator |
-| `accent` | `#607D8B` | Labels, caption text |
-| `muted` | `#90A4AE` | Inactive tab labels |
-| `border` | `#CFD8DC` | Strong dividers |
-| `borderLight` | `#ECEFF1` | Card borders |
-| `softBg` | `#ECEFF1` | Top bar |
-| `surface` | `#FAFAFA` | Page background |
-| `card` | `#FFFFFF` | Card background |
-| `profit` | `#2E7D32` | Profit number accent |
-| `utang` | `#E65100` | Utang amount accent |
-| `danger` | `#C62828` | Destructive actions |
+The app supports **5 preset palettes** plus a **custom hue picker**. All palettes work in both light and dark mode. The active theme is controlled by three settings keys (see §4.5). Color theme and dark mode are configured under **Settings → Display** (see §8).
+
+#### Preset palettes
+
+| # | Name | Hue | Light feel | Dark feel |
+|---|---|---|---|---|
+| 1 | **Default** | 200° | Neutral, calm — the baseline design | Deep slate with cool-tinted surfaces |
+| 2 | **Ocean** | 210° | Clean, crisp | Deep navy with bright blue accents |
+| 3 | **Forest** | 150° | Fresh, natural | Deep forest green with sage accents |
+| 4 | **Rose** | 345° | Warm, friendly | Deep wine with rose-pink accents |
+| 5 | **Sunset** | 28° | Energetic, warm | Rich dark brown with amber highlights |
+
+All five presets are pre-chosen hue values fed through the derivation table below — no special-casing per preset.
+
+#### Palette derivation
+
+For any chosen hue H (0–359°), all color tokens are derived as follows. This applies equally to presets and the custom picker.
+
+| Token | Light mode | Dark mode | Use |
+|---|---|---|---|
+| `primary` | HSL(H, 38%, 33%) | HSL(H, 55%, 65%) | Cart bar, primary buttons, active tab indicator |
+| `accent` | HSL(H, 28%, 44%) | HSL(H, 40%, 72%) | Labels, caption text |
+| `muted` | HSL(H, 15%, 60%) | HSL(H, 20%, 48%) | Inactive tab labels |
+| `border` | HSL(H, 12%, 80%) | HSL(H, 12%, 25%) | Strong dividers |
+| `borderLight` | HSL(H, 8%, 92%) | HSL(H, 8%, 18%) | Card borders |
+| `softBg` | HSL(H, 8%, 93%) | HSL(H, 10%, 13%) | Top bar |
+| `surface` | HSL(H, 5%, 98%) | HSL(H, 10%, 10%) | Page background |
+| `card` | `#FFFFFF` (fixed) | HSL(H, 8%, 15%) | Card background |
+| `text` | `#212121` (fixed) | HSL(0, 0%, 92%) (fixed) | Primary text |
+| `text2` | `#263238` (fixed) | HSL(0, 0%, 88%) (fixed) | Headers |
+| `text3` | `#616161` (fixed) | HSL(0, 0%, 58%) (fixed) | Secondary text |
+| `profit` | `#2E7D32` (fixed) | `#66BB6A` (fixed) | Profit number accent |
+| `utang` | `#E65100` (fixed) | `#FFA040` (fixed) | Utang amount accent |
+| `danger` | `#C62828` (fixed) | `#EF5350` (fixed) | Destructive actions |
+
+All derived tokens maintain ≥ 4.5:1 contrast ratio against their surface by construction — the lightness values in the derivation rules enforce this without any per-user validation needed.
+
+#### Custom hue picker
+
+Tapping **"Custom…"** on the theme strip opens a bottom sheet containing:
+
+- A **hue ring** — a full 360° circular slider. Saturation and lightness are fixed by the derivation rules; the user only picks a hue. This prevents unreadable or clashing palettes.
+- A **live mini-preview** showing a product tile, cart bar total, and Pay button rendered in the derived palette. Updates in real time as the hue is dragged. Renders in the user's currently active mode (light or dark) so they see the exact result.
+- **Apply** commits the choice and closes the sheet. **Cancel** discards with no change.
+
+The custom hue defaults to 210° (Ocean blue) on first open so the picker starts with a reasonable color rather than red (0°).
 
 ### 7.2 Typography (Plus Jakarta Sans)
 
@@ -445,14 +489,27 @@ All interactive elements ≥ 48dp on the smaller axis. Pay button, scan button, 
 
 ## 8. Configurable display
 
-Two independent settings under **Settings → Display**:
+Four independent settings under **Settings → Display**:
 
 | Setting | Options | Effect |
 |---|---|---|
 | **Text size** | Small · Medium (default) · Large · Extra Large | Multiplies all theme font sizes by 0.9× / 1× / 1.15× / 1.3× |
 | **Catalog density** | Compact · Comfortable (default) · Spacious | Controls Sell-tab grid columns + tile padding |
+| **Color theme** | Default · Ocean · Forest · Rose · Sunset · Custom | Selects the active palette hue. "Custom…" opens the hue picker bottom sheet (see §7.1). |
+| **Dark mode** | Off (default) · On | Toggles dark mode. Works with any palette choice. |
 
-Stored in `settings` key/value table. Defaults cannot be lost (fallback hard-coded). Segmented controls (not sliders) chosen for clarity.
+Stored in `settings` key/value table (see §4.5). Defaults cannot be lost (fallback hard-coded). Text size and density use segmented controls. Color theme uses a horizontal strip of circular palette chips with a checkmark on the active one. Dark mode uses a toggle switch.
+
+**Layout of Settings → Display:**
+
+```
+[ Text size        ] Segmented: Small · Medium · Large · Extra Large
+[ Catalog density  ] Segmented: Compact · Comfortable · Spacious
+[ Color theme      ] Chip strip: ● Default  ● Ocean  ● Forest  ● Rose  ● Sunset  ⊕ Custom…
+[ Dark mode        ] Toggle switch
+```
+
+The Color theme chip strip scrolls horizontally if needed. Tapping "Custom…" opens the hue picker sheet (§7.1). The dark mode toggle takes effect instantly — no app restart required.
 
 ---
 
@@ -603,10 +660,12 @@ These are noted for future iterations, not v1 work:
 src/
   App.tsx                        # Navigation root, theme provider, fonts
   theme/
-    palette.ts                   # color tokens
+    palette.ts                   # deriveTokens(hue, darkMode) + 5 preset hue constants
     typography.ts                # type scale + tabular-nums
-    paperTheme.ts                # Paper theme override
+    paperTheme.ts                # builds Paper theme dynamically via deriveTokens()
     useScaledTheme.ts            # applies text-size multiplier
+    useAppTheme.ts               # reads theme settings from Zustand, calls deriveTokens(),
+                                 # returns full Paper theme + raw tokens; single source of truth
   navigation/
     BottomTabs.tsx
     SellStack.tsx
@@ -658,7 +717,8 @@ src/
       MarkPaidSheet.tsx
     settings/
       SettingsScreen.tsx
-      DisplaySettingsScreen.tsx
+      DisplaySettingsScreen.tsx    # gains Color theme chip strip + Dark mode toggle
+      HuePickerSheet.tsx           # hue ring + live mini-preview + Apply/Cancel
       BackupScreen.tsx
       RestoreScreen.tsx
   __tests__/

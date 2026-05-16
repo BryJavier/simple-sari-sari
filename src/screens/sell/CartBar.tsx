@@ -1,8 +1,9 @@
+import { useMemo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { useCartStore, cartTotalCentavos, cartItemCount } from '@/store/cart';
 import { formatMoney } from '@/utils/money';
-import { palette } from '@/theme/palette';
+import { useAppPalette } from '@/theme/useAppPalette';
 
 interface CartBarProps {
   onPay: () => void;
@@ -10,6 +11,8 @@ interface CartBarProps {
 }
 
 export function CartBar({ onPay, onViewCart }: CartBarProps) {
+  const palette = useAppPalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const items = useCartStore((s) => s.items);
   const total = cartTotalCentavos(items);
   const count = cartItemCount(items);
@@ -33,18 +36,20 @@ export function CartBar({ onPay, onViewCart }: CartBarProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: palette.card,
-    borderTopWidth: 1,
-    borderTopColor: palette.border,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 12,
-  },
-  info: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  count: { color: palette.text3 },
-  total: { color: palette.text },
-});
+function makeStyles(p: ReturnType<typeof useAppPalette>) {
+  return StyleSheet.create({
+    bar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: p.card,
+      borderTopWidth: 1,
+      borderTopColor: p.border,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      gap: 12,
+    },
+    info: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    count: { color: p.text3 },
+    total: { color: p.text },
+  });
+}

@@ -4,7 +4,7 @@ import { ProductTile } from './ProductTile';
 import { useSettingsStore } from '@/store/settings';
 import { useIsTablet } from '@/utils/layout';
 import { DENSITY_COLUMNS } from '@/theme/types';
-import { palette } from '@/theme/palette';
+import { useAppPalette } from '@/theme/useAppPalette';
 import type { Product } from '@/db/types';
 
 interface CatalogGridProps {
@@ -14,6 +14,7 @@ interface CatalogGridProps {
 }
 
 export function CatalogGrid({ products, onPress, onLongPress }: CatalogGridProps) {
+  const palette = useAppPalette();
   const density = useSettingsStore((s) => s.density);
   const isTablet = useIsTablet();
   const numColumns = DENSITY_COLUMNS[density][isTablet ? 'tablet' : 'phone'];

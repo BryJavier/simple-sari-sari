@@ -1,11 +1,14 @@
+import { useMemo } from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
 import { Text, IconButton, Button, Divider } from 'react-native-paper';
 import { useCartStore, cartTotalCentavos, cartItemCount } from '@/store/cart';
 import { formatMoney } from '@/utils/money';
-import { palette } from '@/theme/palette';
+import { useAppPalette } from '@/theme/useAppPalette';
 import type { CartItem } from '@/store/cart';
 
 function CartLineItem({ item }: { item: CartItem }) {
+  const palette = useAppPalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const increment = useCartStore((s) => s.incrementItem);
   const decrement = useCartStore((s) => s.decrementItem);
 
@@ -31,20 +34,18 @@ interface CartPaneProps {
 }
 
 export function CartPane({ onPay }: CartPaneProps) {
+  const palette = useAppPalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const items = useCartStore((s) => s.items);
   const total = cartTotalCentavos(items);
   const count = cartItemCount(items);
 
   return (
     <View style={styles.pane}>
-      <Text variant="titleMedium" style={styles.header}>
-        Cart
-      </Text>
+      <Text variant="titleMedium" style={styles.header}>Cart</Text>
       <Divider />
       {count === 0 ? (
-        <Text variant="bodyMedium" style={styles.empty}>
-          Cart is empty
-        </Text>
+        <Text variant="bodyMedium" style={styles.empty}>Cart is empty</Text>
       ) : (
         <>
           <FlatList
@@ -56,9 +57,7 @@ export function CartPane({ onPay }: CartPaneProps) {
           <Divider />
           <View style={styles.footer}>
             <Text variant="titleMedium">{formatMoney(total)}</Text>
-            <Button mode="contained" onPress={onPay}>
-              Pay
-            </Button>
+            <Button mode="contained" onPress={onPay}>Pay</Button>
           </View>
         </>
       )}
@@ -66,24 +65,16 @@ export function CartPane({ onPay }: CartPaneProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  pane: {
-    width: 300,
-    backgroundColor: palette.card,
-    borderLeftWidth: 1,
-    borderLeftColor: palette.border,
-  },
-  header: { padding: 12, color: palette.text },
-  list: { flex: 1 },
-  empty: { padding: 16, color: palette.text3, textAlign: 'center' },
-  lineItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  itemName: { flex: 1, color: palette.text },
-  qtyRow: { flexDirection: 'row', alignItems: 'center' },
-  itemTotal: { width: 80, textAlign: 'right', color: palette.text },
-  footer: { padding: 12, gap: 8 },
-});
+function makeStyles(p: ReturnType<typeof useAppPalette>) {
+  return StyleSheet.create({
+    pane: { width: 300, backgroundColor: p.card, borderLeftWidth: 1, borderLeftColor: p.border },
+    header: { padding: 12, color: p.text },
+    list: { flex: 1 },
+    empty: { padding: 16, color: p.text3, textAlign: 'center' },
+    lineItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4 },
+    itemName: { flex: 1, color: p.text },
+    qtyRow: { flexDirection: 'row', alignItems: 'center' },
+    itemTotal: { width: 80, textAlign: 'right', color: p.text },
+    footer: { padding: 12, gap: 8 },
+  });
+}

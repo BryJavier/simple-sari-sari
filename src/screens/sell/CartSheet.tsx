@@ -1,9 +1,10 @@
+import { useMemo } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Button, Divider, IconButton, Modal, Portal, Text } from 'react-native-paper';
 import { useCartStore, cartTotalCentavos, cartItemCount } from '@/store/cart';
 import type { CartItem } from '@/store/cart';
 import { formatMoney } from '@/utils/money';
-import { palette } from '@/theme/palette';
+import { useAppPalette } from '@/theme/useAppPalette';
 
 interface CartSheetProps {
   visible: boolean;
@@ -12,6 +13,8 @@ interface CartSheetProps {
 }
 
 function CartLineItem({ item }: { item: CartItem }) {
+  const palette = useAppPalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const increment = useCartStore((s) => s.incrementItem);
   const decrement = useCartStore((s) => s.decrementItem);
 
@@ -33,6 +36,8 @@ function CartLineItem({ item }: { item: CartItem }) {
 }
 
 export function CartSheet({ visible, onDismiss, onPay }: CartSheetProps) {
+  const palette = useAppPalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const items = useCartStore((s) => s.items);
   const total = cartTotalCentavos(items);
   const count = cartItemCount(items);
@@ -44,11 +49,7 @@ export function CartSheet({ visible, onDismiss, onPay }: CartSheetProps) {
 
   return (
     <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={onDismiss}
-        contentContainerStyle={styles.container}
-      >
+      <Modal visible={visible} onDismiss={onDismiss} contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Text variant="titleMedium" style={styles.title}>
             Cart · {count} item{count !== 1 ? 's' : ''}
@@ -57,9 +58,7 @@ export function CartSheet({ visible, onDismiss, onPay }: CartSheetProps) {
         </View>
         <Divider />
         {count === 0 ? (
-          <Text variant="bodyMedium" style={styles.empty}>
-            Cart is empty
-          </Text>
+          <Text variant="bodyMedium" style={styles.empty}>Cart is empty</Text>
         ) : (
           <>
             <FlatList
@@ -70,14 +69,10 @@ export function CartSheet({ visible, onDismiss, onPay }: CartSheetProps) {
             />
             <Divider />
             <View style={styles.footer}>
-              <Text variant="titleMedium" style={styles.total}>
-                {formatMoney(total)}
-              </Text>
+              <Text variant="titleMedium" style={styles.total}>{formatMoney(total)}</Text>
               <View style={styles.footerActions}>
                 <Button onPress={onDismiss}>Continue</Button>
-                <Button mode="contained" onPress={handlePay}>
-                  Pay
-                </Button>
+                <Button mode="contained" onPress={handlePay}>Pay</Button>
               </View>
             </View>
           </>
@@ -87,28 +82,19 @@ export function CartSheet({ visible, onDismiss, onPay }: CartSheetProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: palette.card,
-    margin: 24,
-    borderRadius: 16,
-    overflow: 'hidden',
-    maxHeight: '75%',
-  },
-  header: { flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingVertical: 4 },
-  title: { color: palette.text },
-  list: { flexGrow: 0 },
-  empty: { padding: 24, color: palette.text3, textAlign: 'center' },
-  lineItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  itemName: { flex: 1, color: palette.text },
-  qtyRow: { flexDirection: 'row', alignItems: 'center' },
-  itemTotal: { width: 80, textAlign: 'right', color: palette.text },
-  footer: { padding: 16, gap: 8 },
-  total: { color: palette.accent },
-  footerActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
-});
+function makeStyles(p: ReturnType<typeof useAppPalette>) {
+  return StyleSheet.create({
+    container: { backgroundColor: p.card, margin: 24, borderRadius: 16, overflow: 'hidden', maxHeight: '75%' },
+    header: { flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingVertical: 4 },
+    title: { color: p.text },
+    list: { flexGrow: 0 },
+    empty: { padding: 24, color: p.text3, textAlign: 'center' },
+    lineItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4 },
+    itemName: { flex: 1, color: p.text },
+    qtyRow: { flexDirection: 'row', alignItems: 'center' },
+    itemTotal: { width: 80, textAlign: 'right', color: p.text },
+    footer: { padding: 16, gap: 8 },
+    total: { color: p.accent },
+    footerActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
+  });
+}
