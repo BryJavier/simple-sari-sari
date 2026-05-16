@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, View, StyleSheet } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, ScrollView, View, StyleSheet } from 'react-native';
 import {
   Appbar,
   Button,
@@ -22,7 +22,7 @@ import {
   updateProduct,
   archiveProduct,
 } from '@/db/queries/products';
-import { parseMoney, formatMoneyShort, isValidMoneyInput } from '@/utils/money';
+import { parseMoney, formatMoneyEdit, isValidMoneyInput } from '@/utils/money';
 import { palette } from '@/theme/palette';
 import type { ProductsStackParamList } from '@/navigation/types';
 import { BarcodeChooserSheet } from './BarcodeChooserSheet';
@@ -49,6 +49,7 @@ export function ProductFormScreen() {
   const [barcodeDisplayVisible, setBarcodeDisplayVisible] = useState(false);
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const scannedRef = useRef(false);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -56,8 +57,8 @@ export function ProductFormScreen() {
       const product = await getProduct(db, productId);
       if (!product) return;
       setName(product.name);
-      setPriceText(formatMoneyShort(product.price_centavos));
-      setCostText(product.cost_centavos !== null ? formatMoneyShort(product.cost_centavos) : '');
+      setPriceText(formatMoneyEdit(product.price_centavos));
+      setCostText(product.cost_centavos !== null ? formatMoneyEdit(product.cost_centavos) : '');
       setBarcode(product.barcode ?? '');
     })();
   }, [db, isEdit, productId]);
@@ -83,6 +84,8 @@ export function ProductFormScreen() {
         await createProduct(db, input);
       }
       navigation.goBack();
+    } catch (e) {
+      Alert.alert('Error', 'Could not save product. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -95,6 +98,8 @@ export function ProductFormScreen() {
       await archiveProduct(db, productId);
       setArchiveDialogVisible(false);
       navigation.goBack();
+    } catch (e) {
+      Alert.alert('Error', 'Could not archive product. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -106,6 +111,7 @@ export function ProductFormScreen() {
       const result = await requestCameraPermission();
       if (!result.granted) return;
     }
+    scannedRef.current = false;
     setCameraVisible(true);
   }
 
@@ -227,6 +233,8 @@ export function ProductFormScreen() {
           <CameraView
             style={StyleSheet.absoluteFillObject}
             onBarcodeScanned={({ data }) => {
+              if (scannedRef.current) return;
+              scannedRef.current = true;
               setBarcode(data);
               setCameraVisible(false);
             }}

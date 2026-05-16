@@ -6,14 +6,11 @@ import {
   List,
   Searchbar,
   Text,
-  Dialog,
-  Button,
-  Portal,
 } from 'react-native-paper';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useDatabase } from '@/db/DatabaseProvider';
-import { listActiveProducts, archiveProduct } from '@/db/queries/products';
+import { listActiveProducts } from '@/db/queries/products';
 import { formatMoney } from '@/utils/money';
 import { palette } from '@/theme/palette';
 import type { ProductsStackParamList } from '@/navigation/types';
@@ -28,7 +25,6 @@ export function ProductListScreen() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState('');
-  const [archiveTarget, setArchiveTarget] = useState<Product | null>(null);
 
   const load = useCallback(async () => {
     setProducts(await listActiveProducts(db));
@@ -39,13 +35,6 @@ export function ProductListScreen() {
   const filtered = query.trim()
     ? products.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()))
     : products;
-
-  async function handleArchiveConfirm() {
-    if (!archiveTarget) return;
-    await archiveProduct(db, archiveTarget.id);
-    setArchiveTarget(null);
-    await load();
-  }
 
   function descriptionFor(p: Product): string {
     const price = formatMoney(p.price_centavos);
@@ -107,23 +96,6 @@ export function ProductListScreen() {
         accessibilityLabel="Add product"
       />
 
-      <Portal>
-        <Dialog visible={archiveTarget !== null} onDismiss={() => setArchiveTarget(null)}>
-          <Dialog.Title>Archive product?</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium">
-              "{archiveTarget?.name}" will no longer appear in the catalog. Sales history is
-              preserved.
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setArchiveTarget(null)}>Cancel</Button>
-            <Button textColor={palette.danger} onPress={handleArchiveConfirm}>
-              Archive
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
     </View>
   );
 }

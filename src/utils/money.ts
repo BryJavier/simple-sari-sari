@@ -37,6 +37,13 @@ export function formatMoneyShort(centavos: number): string {
   return `${wholeStr}.${frac.toString().padStart(2, '0')}`;
 }
 
+export function formatMoneyEdit(centavos: number): string {
+  const whole = Math.floor(centavos / 100);
+  const frac = centavos % 100;
+  if (frac === 0) return whole.toString();
+  return `${whole}.${frac.toString().padStart(2, '0')}`;
+}
+
 export function isValidMoneyInput(raw: string): boolean {
   const s = strip(raw);
   if (s === '') return true;
