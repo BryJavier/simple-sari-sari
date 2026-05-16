@@ -1,4 +1,6 @@
 import { ActivityIndicator, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { setAudioModeAsync } from 'expo-audio';
 import { NavigationContainer } from '@react-navigation/native';
 import {
   useFonts,
@@ -23,6 +25,16 @@ export default function App() {
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
   });
+
+  useEffect(() => {
+    setAudioModeAsync({
+      playsInSilentMode: false,
+      interruptionMode: 'mixWithOthers',
+      allowsRecording: false,
+      shouldPlayInBackground: false,
+      shouldRouteThroughEarpiece: false,
+    }).catch(() => {});
+  }, []);
 
   if (fontError) {
     return (
