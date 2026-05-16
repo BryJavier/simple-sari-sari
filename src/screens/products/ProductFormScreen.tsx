@@ -27,6 +27,7 @@ import { palette } from '@/theme/palette';
 import type { ProductsStackParamList } from '@/navigation/types';
 import { BarcodeChooserSheet } from './BarcodeChooserSheet';
 import { BarcodeDisplaySheet } from './BarcodeDisplaySheet';
+import { BarcodeViewfinder } from '@/components/BarcodeViewfinder';
 
 type Nav = NativeStackNavigationProp<ProductsStackParamList, 'ProductForm'>;
 type Route = RouteProp<ProductsStackParamList, 'ProductForm'>;
@@ -245,6 +246,7 @@ export function ProductFormScreen() {
               barcodeTypes: ['ean13', 'ean8', 'code128', 'code39', 'qr'],
             }}
           />
+          <BarcodeViewfinder />
           <IconButton
             icon="close"
             iconColor="white"
