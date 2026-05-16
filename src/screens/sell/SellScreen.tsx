@@ -27,7 +27,7 @@ export function SellScreen() {
   const db = useDatabase();
   const isTablet = useIsTablet();
   const addItem = useCartStore((s) => s.addItem);
-  const beepPlayer = useAudioPlayer(require('../../assets/sounds/beep.wav'));
+  const beepPlayer = useAudioPlayer(require('../../../assets/sounds/beep.wav'));
 
   const [products, setProducts] = useState<Product[]>([]);
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
