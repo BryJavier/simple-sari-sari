@@ -26,6 +26,7 @@ export function BarcodeScannerModal({
   const decrementItem = useCartStore((s) => s.decrementItem);
   const [permission, requestPermission] = useCameraPermissions();
   const [snackVisible, setSnackVisible] = useState(false);
+  const [torchEnabled, setTorchEnabled] = useState(false);
   const lastScannedRef = useRef<string | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cameraLayoutRef = useRef<{ width: number; height: number } | null>(null);
@@ -43,6 +44,7 @@ export function BarcodeScannerModal({
       }
       lastScannedRef.current = null;
       setSnackVisible(false);
+      setTorchEnabled(false);
       return;
     }
     if (permission?.granted) return;
@@ -74,6 +76,7 @@ export function BarcodeScannerModal({
             {permission?.granted && visible && (
               <CameraView
                 style={StyleSheet.absoluteFillObject}
+                enableTorch={torchEnabled}
                 onBarcodeScanned={(e) => {
                   // ROI filter: ignore scans outside the viewfinder rectangle
                   const layout = cameraLayoutRef.current;
@@ -109,6 +112,15 @@ export function BarcodeScannerModal({
               />
             )}
             <BarcodeViewfinder />
+            {permission?.granted && visible && (
+              <IconButton
+                icon={torchEnabled ? 'flashlight-off' : 'flashlight'}
+                iconColor="white"
+                size={28}
+                style={styles.torchBtn}
+                onPress={() => setTorchEnabled((v) => !v)}
+              />
+            )}
             <IconButton
               icon="close"
               iconColor="white"
@@ -177,6 +189,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  torchBtn: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   cartHalf: { flex: 1, backgroundColor: palette.card },
