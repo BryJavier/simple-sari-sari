@@ -78,7 +78,7 @@ export function ReceiptDetailScreen() {
   if (!sale) {
     return (
       <View style={styles.center}>
-        <Text variant="bodyMedium" style={{ color: palette.text3 }}>
+        <Text variant="bodyMedium" style={styles.errorText}>
           Could not load receipt.
         </Text>
       </View>
@@ -198,4 +198,5 @@ const styles = StyleSheet.create({
   },
   totalAmount: { fontVariant: ['tabular-nums'] },
   voidedText: { textDecorationLine: 'line-through', color: palette.text3 },
+  errorText: { color: palette.text3 },
 });

@@ -31,12 +31,14 @@ export function MarkPaidSheet({ visible, customer, onDismiss, onPaid }: MarkPaid
     setLoadingSales(true);
     getCustomerSales(db, customer.customer_name)
       .then(setUnpaidSales)
+      .catch(() => onDismiss())
       .finally(() => setLoadingSales(false));
   }, [visible, customer, db]);
 
   if (!customer) return null;
 
   const totalOwed = customer.total_owed_centavos;
+  // Returns -1 on parse error; isValidMoneyInput gate prevents this in normal flow
   const enteredCentavos = (() => {
     try { return amountText ? parseMoney(amountText) : 0; } catch { return -1; }
   })();

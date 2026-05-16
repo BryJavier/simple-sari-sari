@@ -88,7 +88,7 @@ export function TransactionRow({ sale, onVoidRequest }: TransactionRowProps) {
         title="Void this transaction"
         leadingIcon="cancel"
         disabled={isVoided}
-        titleStyle={isVoided ? { color: palette.muted } : { color: palette.danger }}
+        titleStyle={isVoided ? styles.voidMenuDisabled : styles.voidMenuDanger}
       />
     </Menu>
   );
@@ -110,11 +110,13 @@ const styles = StyleSheet.create({
   middle: { flex: 1, gap: 4 },
   badge: { alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
   badgeCash: { backgroundColor: palette.softBg },
-  badgeUtang: { backgroundColor: '#FFF3E0' },
+  badgeUtang: { backgroundColor: palette.utangBg },
   badgeText: { color: palette.text },
   customer: { color: palette.text3 },
   right: { alignItems: 'flex-end', gap: 2 },
   total: { color: palette.text, fontVariant: ['tabular-nums'] },
   totalVoided: { textDecorationLine: 'line-through', color: palette.text3 },
   voidedLabel: { color: palette.text3 },
+  voidMenuDisabled: { color: palette.muted },
+  voidMenuDanger: { color: palette.danger },
 });
