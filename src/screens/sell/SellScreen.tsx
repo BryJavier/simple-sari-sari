@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Appbar } from 'react-native-paper';
+import { Appbar, Searchbar } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useDatabase } from '@/db/DatabaseProvider';
@@ -33,6 +33,7 @@ export function SellScreen() {
   const [cartSheetVisible, setCartSheetVisible] = useState(false);
   const [scannerVisible, setScannerVisible] = useState(false);
   const [summaryKey, setSummaryKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     void seedSampleProducts(db);
@@ -47,6 +48,12 @@ export function SellScreen() {
   const handleSaleComplete = useCallback(() => {
     setSummaryKey((k) => k + 1);
   }, []);
+
+  const filteredProducts = searchQuery.trim()
+    ? products.filter((p) =>
+        p.name.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+      )
+    : products;
 
   return (
     <View style={styles.root}>
@@ -67,8 +74,15 @@ export function SellScreen() {
       <View style={[styles.body, isTablet && styles.bodyTablet]}>
         <View style={styles.main}>
           <TodayCards refreshKey={summaryKey} />
+          <Searchbar
+            placeholder="Search products..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            style={styles.searchBar}
+            inputStyle={styles.searchInput}
+          />
           <CatalogGrid
-            products={products}
+            products={filteredProducts}
             onPress={(p) => addItem(p)}
             onLongPress={(p) => setPreviewProduct(p)}
           />
@@ -113,4 +127,11 @@ const styles = StyleSheet.create({
   body: { flex: 1 },
   bodyTablet: { flexDirection: 'row' },
   main: { flex: 1 },
+  searchBar: {
+    marginHorizontal: 8,
+    marginBottom: 4,
+    elevation: 0,
+    backgroundColor: palette.card,
+  },
+  searchInput: { fontSize: 14 },
 });

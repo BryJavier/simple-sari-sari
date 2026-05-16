@@ -1,8 +1,10 @@
 import { FlatList, View } from 'react-native';
+import { Text } from 'react-native-paper';
 import { ProductTile } from './ProductTile';
 import { useSettingsStore } from '@/store/settings';
 import { useIsTablet } from '@/utils/layout';
 import { DENSITY_COLUMNS } from '@/theme/types';
+import { palette } from '@/theme/palette';
 import type { Product } from '@/db/types';
 
 interface CatalogGridProps {
@@ -33,6 +35,14 @@ export function CatalogGrid({ products, onPress, onLongPress }: CatalogGridProps
           />
         </View>
       )}
+      ListEmptyComponent={
+        <Text
+          variant="bodyMedium"
+          style={{ textAlign: 'center', color: palette.text3, padding: 32 }}
+        >
+          No products found
+        </Text>
+      }
     />
   );
 }
