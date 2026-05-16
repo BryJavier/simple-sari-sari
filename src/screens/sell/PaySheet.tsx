@@ -32,7 +32,14 @@ export function PaySheet({ visible, onDismiss, onSaleComplete }: PaySheetProps) 
   const [tenderedText, setTenderedText] = useState('');
 
   const total = cartTotalCentavos(items);
-  const tenderedCentavos = tenderedText !== '' ? parseMoney(tenderedText) : 0;
+  const tenderedCentavos = (() => {
+    if (tenderedText === '') return 0;
+    try {
+      return parseMoney(tenderedText);
+    } catch {
+      return 0;
+    }
+  })();
   const changeCentavos = tenderedCentavos - total;
 
   const canConfirm =
