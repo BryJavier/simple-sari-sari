@@ -2,6 +2,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   Settings: undefined;
   DisplaySettings: undefined;
+  ReceiptDetail: { saleId: number };
 };
 
 export type SellStackParamList = {
