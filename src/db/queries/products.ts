@@ -1,6 +1,48 @@
 import type { Database, Product } from '@/db/types';
 import { todayISO } from '@/utils/date';
 
+export interface CreateProductInput {
+  name: string;
+  price_centavos: number;
+  cost_centavos?: number | null;
+  barcode?: string | null;
+}
+
+export async function createProduct(db: Database, input: CreateProductInput): Promise<number> {
+  const result = await db.run(
+    "INSERT INTO products (name, price_centavos, cost_centavos, barcode, created_at) VALUES (?, ?, ?, ?, datetime('now'))",
+    [input.name, input.price_centavos, input.cost_centavos ?? null, input.barcode ?? null],
+  );
+  return Number(result.lastInsertRowid);
+}
+
+export interface UpdateProductInput {
+  name: string;
+  price_centavos: number;
+  cost_centavos?: number | null;
+  barcode?: string | null;
+}
+
+export async function updateProduct(
+  db: Database,
+  id: number,
+  input: UpdateProductInput,
+): Promise<void> {
+  await db.run(
+    'UPDATE products SET name = ?, price_centavos = ?, cost_centavos = ?, barcode = ? WHERE id = ?',
+    [input.name, input.price_centavos, input.cost_centavos ?? null, input.barcode ?? null, id],
+  );
+}
+
+export async function archiveProduct(db: Database, id: number): Promise<void> {
+  await db.run("UPDATE products SET archived_at = datetime('now') WHERE id = ?", [id]);
+}
+
+export async function getProductById(db: Database, id: number): Promise<Product | null> {
+  const row = await db.get<Product>('SELECT * FROM products WHERE id = ?', [id]);
+  return row ?? null;
+}
+
 export async function listActiveProducts(db: Database): Promise<Product[]> {
   return db.all<Product>(
     'SELECT * FROM products WHERE archived_at IS NULL ORDER BY name ASC',
