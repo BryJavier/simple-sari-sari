@@ -15,6 +15,7 @@
     ],
     "android": {
       "package": "com.sari.pos",
+      "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ECEFF1"
@@ -27,7 +28,8 @@
       "expo-sqlite",
       "expo-font",
       "expo-camera",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-audio"
     ]
   }
 }

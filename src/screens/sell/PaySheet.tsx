@@ -76,7 +76,7 @@ export function PaySheet({ visible, onDismiss, onSaleComplete }: PaySheetProps) 
     <>
       <Portal>
         <Modal visible={visible} onDismiss={handleDismiss} contentContainerStyle={styles.container}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             <ScrollView keyboardShouldPersistTaps="handled" bounces={false}>
               <View style={[styles.surface, styles.surfaceView]}>
                 <Text variant="titleMedium" style={styles.title}>

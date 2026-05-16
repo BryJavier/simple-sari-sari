@@ -1,6 +1,9 @@
 import { ActivityIndicator, Text, View } from 'react-native';
 import { useEffect } from 'react';
-import { setAudioModeAsync } from 'expo-audio';
+import { preload, setAudioModeAsync, setIsAudioActiveAsync } from 'expo-audio';
+
+// Pre-load beep asset at module scope so it's ready before first scan
+preload(require('./assets/sounds/beep.wav')).catch(() => {});
 import { NavigationContainer } from '@react-navigation/native';
 import {
   useFonts,
@@ -29,9 +32,10 @@ export default function App() {
   });
 
   useEffect(() => {
+    setIsAudioActiveAsync(true).catch(() => {});
     setAudioModeAsync({
       playsInSilentMode: false,
-      interruptionMode: 'mixWithOthers',
+      interruptionMode: 'duckOthers',
       allowsRecording: false,
       shouldPlayInBackground: false,
       shouldRouteThroughEarpiece: false,
