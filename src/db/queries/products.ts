@@ -43,9 +43,8 @@ export async function archiveProduct(db: Database, id: number): Promise<void> {
   if (changes === 0) throw new Error(`Product ${id} not found`);
 }
 
-export async function getProductById(db: Database, id: number): Promise<Product | null> {
-  const row = await db.get<Product>('SELECT * FROM products WHERE id = ?', [id]);
-  return row ?? null;
+export async function getProduct(db: Database, id: number): Promise<Product | undefined> {
+  return db.get<Product>('SELECT * FROM products WHERE id = ?', [id]);
 }
 
 export async function listActiveProducts(db: Database): Promise<Product[]> {

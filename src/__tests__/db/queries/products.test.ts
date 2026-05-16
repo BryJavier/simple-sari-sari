@@ -7,7 +7,7 @@ import {
   createProduct,
   updateProduct,
   archiveProduct,
-  getProductById,
+  getProduct,
 } from '@/db/queries/products';
 import { todayISO } from '@/utils/date';
 
@@ -119,16 +119,16 @@ describe('product mutations', () => {
     expect(active.find((p) => p.id === id)).toBeUndefined();
   });
 
-  it('getProductById returns product', async () => {
+  it('getProduct returns product', async () => {
     const id = await createProduct(db, { name: 'Found', price_centavos: 300 });
-    const product = await getProductById(db, id);
-    expect(product).not.toBeNull();
+    const product = await getProduct(db, id);
+    expect(product).toBeDefined();
     expect(product!.name).toBe('Found');
   });
 
-  it('getProductById returns null for missing id', async () => {
-    const product = await getProductById(db, 99999);
-    expect(product).toBeNull();
+  it('getProduct returns undefined for missing id', async () => {
+    const product = await getProduct(db, 99999);
+    expect(product).toBeUndefined();
   });
 
   it('updateProduct throws for non-existent id', async () => {
