@@ -16,6 +16,7 @@ import { ProductPreviewSheet } from './ProductPreviewSheet';
 import { CartBar } from './CartBar';
 import { CartPane } from './CartPane';
 import { PaySheet } from './PaySheet';
+import { BarcodeScannerModal } from './BarcodeScannerModal';
 
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -28,6 +29,7 @@ export function SellScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
   const [payVisible, setPayVisible] = useState(false);
+  const [scannerVisible, setScannerVisible] = useState(false);
   const [summaryKey, setSummaryKey] = useState(0);
 
   useEffect(() => {
@@ -48,6 +50,11 @@ export function SellScreen() {
     <View style={styles.root}>
       <Appbar.Header>
         <Appbar.Content title="Sell" />
+        <Appbar.Action
+          icon="barcode-scan"
+          onPress={() => setScannerVisible(true)}
+          accessibilityLabel="Scan barcode"
+        />
         <Appbar.Action
           icon="cog"
           onPress={() => navigation.navigate('Settings')}
@@ -77,6 +84,11 @@ export function SellScreen() {
         visible={payVisible}
         onDismiss={() => setPayVisible(false)}
         onSaleComplete={handleSaleComplete}
+      />
+      <BarcodeScannerModal
+        visible={scannerVisible}
+        products={products}
+        onDismiss={() => setScannerVisible(false)}
       />
     </View>
   );
