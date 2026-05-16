@@ -31,7 +31,7 @@ export function SellScreen() {
   const [summaryKey, setSummaryKey] = useState(0);
 
   useEffect(() => {
-    seedSampleProducts(db);
+    void seedSampleProducts(db);
   }, [db]);
 
   useFocusEffect(
