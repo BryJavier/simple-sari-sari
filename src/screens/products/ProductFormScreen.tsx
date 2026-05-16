@@ -86,7 +86,14 @@ export function ProductFormScreen() {
       }
       navigation.goBack();
     } catch (e) {
-      Alert.alert('Error', 'Could not save product. Please try again.');
+      const isDuplicateBarcode =
+        e instanceof Error && e.message.includes('UNIQUE constraint failed: products.barcode');
+      Alert.alert(
+        'Error',
+        isDuplicateBarcode
+          ? 'This barcode is already used by another product.'
+          : 'Could not save product. Please try again.',
+      );
     } finally {
       setLoading(false);
     }
