@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Card, Text } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { useDatabase } from '@/db/DatabaseProvider';
 import { todaySalesSummary } from '@/db/queries/sales';
 import { formatMoney } from '@/utils/money';
-import { palette } from '@/theme/palette';
+import { useAppPalette } from '@/theme/useAppPalette';
 import type { TodaySummary } from '@/db/types';
 
 const ZERO: TodaySummary = { salesCount: 0, totalCentavos: 0, profitCentavos: 0 };
@@ -16,6 +16,8 @@ interface TodayCardsProps {
 
 export function TodayCards({ refreshKey = 0 }: TodayCardsProps) {
   const db = useDatabase();
+  const palette = useAppPalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const [summary, setSummary] = useState<TodaySummary>(ZERO);
 
   const refresh = useCallback(async () => {
@@ -55,8 +57,10 @@ export function TodayCards({ refreshKey = 0 }: TodayCardsProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingVertical: 10 },
-  card: { flex: 1, backgroundColor: palette.card },
-  label: { color: palette.text3, marginBottom: 2 },
-});
+function makeStyles(p: ReturnType<typeof useAppPalette>) {
+  return StyleSheet.create({
+    row: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingVertical: 10 },
+    card: { flex: 1, backgroundColor: p.card },
+    label: { color: p.text3, marginBottom: 2 },
+  });
+}

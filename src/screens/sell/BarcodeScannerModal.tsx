@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Modal, Portal, Text, Snackbar, IconButton } from 'react-native-paper';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useCartStore, cartTotalCentavos } from '@/store/cart';
 import { formatMoney } from '@/utils/money';
-import { palette } from '@/theme/palette';
+import { useAppPalette } from '@/theme/useAppPalette';
 import type { Product } from '@/db/types';
 
 interface BarcodeScannerModalProps {
@@ -13,11 +13,9 @@ interface BarcodeScannerModalProps {
   onDismiss: () => void;
 }
 
-export function BarcodeScannerModal({
-  visible,
-  products,
-  onDismiss,
-}: BarcodeScannerModalProps) {
+export function BarcodeScannerModal({ visible, products, onDismiss }: BarcodeScannerModalProps) {
+  const palette = useAppPalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
   const items = useCartStore((s) => s.items);
   const addItem = useCartStore((s) => s.addItem);
   const [permission, requestPermission] = useCameraPermissions();
@@ -25,25 +23,15 @@ export function BarcodeScannerModal({
   const lastScannedRef = useRef<string | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onDismissRef = useRef(onDismiss);
-  useEffect(() => {
-    onDismissRef.current = onDismiss;
-  });
+  useEffect(() => { onDismissRef.current = onDismiss; });
 
   useEffect(() => {
     if (!visible) {
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-        debounceTimer.current = null;
-      }
-      lastScannedRef.current = null;
-      setSnackVisible(false);
-      return;
+      if (debounceTimer.current) { clearTimeout(debounceTimer.current); debounceTimer.current = null; }
+      lastScannedRef.current = null; setSnackVisible(false); return;
     }
     if (permission?.granted) return;
-    requestPermission().then((result) => {
-      if (!result.granted) onDismissRef.current();
-    });
-    // intentionally only re-runs when the modal opens
+    requestPermission().then((result) => { if (!result.granted) onDismissRef.current(); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
@@ -51,13 +39,8 @@ export function BarcodeScannerModal({
 
   return (
     <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={onDismiss}
-        contentContainerStyle={StyleSheet.absoluteFillObject}
-      >
+      <Modal visible={visible} onDismiss={onDismiss} contentContainerStyle={StyleSheet.absoluteFillObject}>
         <View style={styles.root}>
-          {/* Top half: live camera */}
           <View style={styles.cameraHalf}>
             {permission?.granted && visible && (
               <CameraView
@@ -66,26 +49,14 @@ export function BarcodeScannerModal({
                   const trimmed = data.trim();
                   if (lastScannedRef.current === trimmed) return;
                   lastScannedRef.current = trimmed;
-
                   const product = products.find((p) => p.barcode === trimmed);
-                  if (!product) {
-                    setSnackVisible(true);
-                  } else {
-                    addItem(product);
-                  }
-
+                  if (!product) { setSnackVisible(true); } else { addItem(product); }
                   if (debounceTimer.current) clearTimeout(debounceTimer.current);
-                  debounceTimer.current = setTimeout(() => {
-                    lastScannedRef.current = null;
-                    debounceTimer.current = null;
-                  }, 3000);
+                  debounceTimer.current = setTimeout(() => { lastScannedRef.current = null; debounceTimer.current = null; }, 3000);
                 }}
-                barcodeScannerSettings={{
-                  barcodeTypes: ['ean13', 'ean8', 'code128', 'code39', 'qr'],
-                }}
+                barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'code128', 'code39', 'qr'] }}
               />
             )}
-            {/* Viewfinder overlay */}
             <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
               <View style={styles.vfTop} />
               <View style={styles.vfMiddle}>
@@ -102,34 +73,20 @@ export function BarcodeScannerModal({
                 <Text style={styles.vfLabel}>Point at barcode</Text>
               </View>
             </View>
-            <IconButton
-              icon="close"
-              iconColor="white"
-              size={28}
-              style={styles.closeBtn}
-              onPress={onDismiss}
-            />
+            <IconButton icon="close" iconColor="white" size={28} style={styles.closeBtn} onPress={onDismiss} />
           </View>
-
-          {/* Bottom half: scrollable cart list */}
           <View style={styles.cartHalf}>
             <View style={styles.cartHeader}>
-              <Text style={styles.cartHeaderText}>
-                Cart · {items.length} item{items.length !== 1 ? 's' : ''}
-              </Text>
+              <Text style={styles.cartHeaderText}>Cart · {items.length} item{items.length !== 1 ? 's' : ''}</Text>
             </View>
             <ScrollView style={styles.cartScroll}>
               {items.map((item) => (
                 <View key={item.product.id} style={styles.cartRow}>
                   <View style={styles.cartRowInfo}>
                     <Text style={styles.cartItemName}>{item.product.name}</Text>
-                    <Text style={styles.cartItemDetail}>
-                      {formatMoney(item.product.price_centavos)} × {item.quantity}
-                    </Text>
+                    <Text style={styles.cartItemDetail}>{formatMoney(item.product.price_centavos)} × {item.quantity}</Text>
                   </View>
-                  <Text style={styles.cartItemTotal}>
-                    {formatMoney(item.product.price_centavos * item.quantity)}
-                  </Text>
+                  <Text style={styles.cartItemTotal}>{formatMoney(item.product.price_centavos * item.quantity)}</Text>
                 </View>
               ))}
             </ScrollView>
@@ -139,83 +96,37 @@ export function BarcodeScannerModal({
           </View>
         </View>
       </Modal>
-
-      <Snackbar
-        visible={snackVisible}
-        onDismiss={() => setSnackVisible(false)}
-        duration={2000}
-      >
-        Barcode not found
-      </Snackbar>
+      <Snackbar visible={snackVisible} onDismiss={() => setSnackVisible(false)} duration={2000}>Barcode not found</Snackbar>
     </Portal>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000' },
-  cameraHalf: { flex: 1 },
-  closeBtn: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  cartHalf: { flex: 1, backgroundColor: palette.card },
-  cartHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.borderLight,
-  },
-  cartHeaderText: {
-    fontSize: 11,
-    color: palette.text3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  cartScroll: { flex: 1 },
-  cartRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.borderLight,
-  },
-  cartRowInfo: { flex: 1 },
-  cartItemName: { fontSize: 14, fontWeight: '600', color: palette.text },
-  cartItemDetail: { fontSize: 12, color: palette.text3, marginTop: 2 },
-  cartItemTotal: { fontSize: 14, fontWeight: '600', color: palette.primary },
-  doneBtn: { backgroundColor: palette.primary, paddingVertical: 14 },
-  doneBtnText: {
-    color: palette.card,
-    textAlign: 'center',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  vfTop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' },
-  vfMiddle: { flexDirection: 'row', height: 120 },
-  vfSide: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' },
-  vfWindow: {
-    width: 260,
-  },
-  vfBottom: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    alignItems: 'center',
-    paddingTop: 12,
-  },
-  vfLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 12 },
-  vfCorner: {
-    position: 'absolute',
-    width: 20,
-    height: 20,
-    borderColor: '#fff',
-    borderWidth: 3,
-  },
-  vfCornerTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0 },
-  vfCornerTR: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0 },
-  vfCornerBL: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0 },
-  vfCornerBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0 },
-});
+function makeStyles(p: ReturnType<typeof useAppPalette>) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: '#000' },
+    cameraHalf: { flex: 1 },
+    closeBtn: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.4)' },
+    cartHalf: { flex: 1, backgroundColor: p.card },
+    cartHeader: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: p.borderLight },
+    cartHeaderText: { fontSize: 11, color: p.text3, textTransform: 'uppercase', letterSpacing: 0.5 },
+    cartScroll: { flex: 1 },
+    cartRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: p.borderLight },
+    cartRowInfo: { flex: 1 },
+    cartItemName: { fontSize: 14, fontWeight: '600', color: p.text },
+    cartItemDetail: { fontSize: 12, color: p.text3, marginTop: 2 },
+    cartItemTotal: { fontSize: 14, fontWeight: '600', color: p.primary },
+    doneBtn: { backgroundColor: p.primary, paddingVertical: 14 },
+    doneBtnText: { color: p.card, textAlign: 'center', fontSize: 15, fontWeight: '600' },
+    vfTop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' },
+    vfMiddle: { flexDirection: 'row', height: 120 },
+    vfSide: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' },
+    vfWindow: { width: 260 },
+    vfBottom: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', paddingTop: 12 },
+    vfLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 12 },
+    vfCorner: { position: 'absolute', width: 20, height: 20, borderColor: '#fff', borderWidth: 3 },
+    vfCornerTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0 },
+    vfCornerTR: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0 },
+    vfCornerBL: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0 },
+    vfCornerBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0 },
+  });
+}
