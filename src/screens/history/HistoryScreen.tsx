@@ -1,17 +1,160 @@
-import { View } from 'react-native';
-import { Appbar, Text } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { useState, useCallback } from 'react';
+import { View, FlatList, StyleSheet } from 'react-native';
+import { Appbar, Card, Chip, Text, ActivityIndicator } from 'react-native-paper';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useDatabase } from '@/db/DatabaseProvider';
+import { listSalesByDate } from '@/db/queries/sales';
+import { listOutstandingUtang } from '@/db/queries/utang';
+import { formatMoney } from '@/utils/money';
+import { formatDayLabel } from '@/utils/date';
 import { palette } from '@/theme/palette';
+import { SegmentedControl } from '@/screens/settings/SegmentedControl';
+import { TransactionRow } from './TransactionRow';
+import { UtangLedger } from './UtangLedger';
+import { VoidConfirmDialog } from './VoidConfirmDialog';
+import { MarkPaidSheet } from './MarkPaidSheet';
+import type { SaleWithItems, UtangCustomer } from '@/db/types';
 import type { RootStackParamList } from '@/navigation/types';
 
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 
-export function HistoryScreen() {
-  const navigation = useNavigation<RootNav>();
+type Segment = 'transactions' | 'utang';
+
+const SEGMENT_OPTIONS = [
+  { value: 'transactions' as const, label: 'Transactions' },
+  { value: 'utang' as const, label: 'Utang' },
+];
+
+function SummaryCards({
+  sales,
+  selectedDate,
+}: {
+  sales: SaleWithItems[];
+  selectedDate: Date;
+}) {
+  const nonVoided = sales.filter((s) => !s.voided_at);
+  const totalCentavos = nonVoided.reduce((sum, s) => sum + s.total_centavos, 0);
+  const profitCentavos = nonVoided.reduce((sum, s) => {
+    return (
+      sum +
+      s.items.reduce((si, item) => {
+        if (item.unit_cost_centavos === null) return si;
+        return si + (item.unit_price_centavos - item.unit_cost_centavos) * item.quantity;
+      }, 0)
+    );
+  }, 0);
+
+  const label = formatDayLabel(selectedDate);
+  const salesLabel = label === 'Today' ? "Today's Sales" : `Sales · ${label}`;
+  const profitLabel = label === 'Today' ? "Today's Profit" : `Profit · ${label}`;
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.surface }}>
+    <View style={cardStyles.row}>
+      <Card style={cardStyles.card}>
+        <Card.Content>
+          <Text variant="labelSmall" style={cardStyles.cardLabel}>
+            {salesLabel.toUpperCase()}
+          </Text>
+          <Text variant="headlineSmall" style={cardStyles.salesAmount}>
+            {formatMoney(totalCentavos)}
+          </Text>
+        </Card.Content>
+      </Card>
+      <Card style={cardStyles.card}>
+        <Card.Content>
+          <Text variant="labelSmall" style={cardStyles.cardLabel}>
+            {profitLabel.toUpperCase()}
+          </Text>
+          <Text variant="headlineSmall" style={cardStyles.profitAmount}>
+            {formatMoney(profitCentavos)}
+          </Text>
+        </Card.Content>
+      </Card>
+    </View>
+  );
+}
+
+const cardStyles = StyleSheet.create({
+  row: { flexDirection: 'row', gap: 12, padding: 16 },
+  card: { flex: 1, backgroundColor: palette.card },
+  cardLabel: {
+    color: palette.accent,
+    letterSpacing: 0.6,
+    marginBottom: 4,
+  },
+  salesAmount: { color: palette.text2, fontVariant: ['tabular-nums'] },
+  profitAmount: { color: palette.profit, fontVariant: ['tabular-nums'] },
+});
+
+export function HistoryScreen() {
+  const navigation = useNavigation<RootNav>();
+  const db = useDatabase();
+
+  const [segment, setSegment] = useState<Segment>('transactions');
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  const [sales, setSales] = useState<SaleWithItems[]>([]);
+  const [utangCustomers, setUtangCustomers] = useState<UtangCustomer[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const [quickPickVisible, setQuickPickVisible] = useState(false);
+  const [calendarPickerVisible, setCalendarPickerVisible] = useState(false);
+
+  const [voidSaleId, setVoidSaleId] = useState<number | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<UtangCustomer | null>(null);
+
+  const loadData = useCallback(
+    async (date: Date) => {
+      setLoading(true);
+      try {
+        const [fetchedSales, fetchedUtang] = await Promise.all([
+          listSalesByDate(db, date),
+          listOutstandingUtang(db),
+        ]);
+        setSales(fetchedSales);
+        setUtangCustomers(fetchedUtang);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [db],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const today = new Date();
+      setSelectedDate(today);
+      loadData(today);
+    }, [loadData]),
+  );
+
+  function handleDateSelect(date: Date) {
+    setSelectedDate(date);
+    setQuickPickVisible(false);
+    loadData(date);
+  }
+
+  function handleVoided() {
+    setVoidSaleId(null);
+    loadData(selectedDate);
+  }
+
+  function handlePaid() {
+    setSelectedCustomer(null);
+    listOutstandingUtang(db).then(setUtangCustomers).catch(() => {});
+  }
+
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const sevenAgo = new Date(today);
+  sevenAgo.setDate(today.getDate() - 7);
+
+  const chipLabel = `${formatDayLabel(selectedDate)} ▾`;
+
+  return (
+    <View style={styles.root}>
       <Appbar.Header>
         <Appbar.Content title="History" />
         <Appbar.Action
@@ -20,11 +163,148 @@ export function HistoryScreen() {
           accessibilityLabel="Settings"
         />
       </Appbar.Header>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <Text variant="bodyMedium" style={{ color: palette.text3, textAlign: 'center' }}>
-          Today's transactions and utang ledger come in Plan 4.
-        </Text>
+
+      <View style={styles.segmentRow}>
+        <SegmentedControl
+          options={SEGMENT_OPTIONS}
+          value={segment}
+          onChange={setSegment}
+        />
       </View>
+
+      {segment === 'transactions' && (
+        <>
+          <SummaryCards sales={sales} selectedDate={selectedDate} />
+          <View style={styles.chipRow}>
+            <Chip
+              icon="calendar"
+              onPress={() => setQuickPickVisible(true)}
+              style={styles.chip}
+            >
+              {chipLabel}
+            </Chip>
+          </View>
+        </>
+      )}
+
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator />
+        </View>
+      ) : segment === 'transactions' ? (
+        sales.length === 0 ? (
+          <View style={styles.center}>
+            <Text variant="bodyMedium" style={styles.emptyText}>
+              No sales recorded on this day.
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={sales}
+            keyExtractor={(s) => String(s.id)}
+            renderItem={({ item }) => (
+              <TransactionRow
+                sale={item}
+                onVoidRequest={(id) => setVoidSaleId(id)}
+              />
+            )}
+          />
+        )
+      ) : (
+        <UtangLedger
+          customers={utangCustomers}
+          onSelectCustomer={setSelectedCustomer}
+        />
+      )}
+
+      {quickPickVisible && (
+        <View style={styles.quickPickOverlay}>
+          <View style={styles.quickPickSheet}>
+            <Text variant="titleMedium" style={styles.quickPickTitle}>
+              Select date
+            </Text>
+            <View style={styles.quickPickChips}>
+              {[
+                { label: 'Today', date: today },
+                { label: 'Yesterday', date: yesterday },
+                { label: '7 days ago', date: sevenAgo },
+              ].map(({ label, date }) => (
+                <Chip key={label} onPress={() => handleDateSelect(date)}>
+                  {label}
+                </Chip>
+              ))}
+            </View>
+            <Chip
+              icon="calendar-blank"
+              onPress={() => {
+                setQuickPickVisible(false);
+                setCalendarPickerVisible(true);
+              }}
+              style={{ alignSelf: 'flex-start', marginTop: 8 }}
+            >
+              Pick a date…
+            </Chip>
+            <Chip
+              onPress={() => setQuickPickVisible(false)}
+              style={{ alignSelf: 'flex-start', marginTop: 4 }}
+            >
+              Cancel
+            </Chip>
+          </View>
+        </View>
+      )}
+
+      {calendarPickerVisible && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="date"
+          display="default"
+          maximumDate={today}
+          onChange={(event, date) => {
+            setCalendarPickerVisible(false);
+            if (event.type === 'set' && date) {
+              handleDateSelect(date);
+            }
+          }}
+        />
+      )}
+
+      <VoidConfirmDialog
+        visible={voidSaleId !== null}
+        saleId={voidSaleId ?? 0}
+        onDismiss={() => setVoidSaleId(null)}
+        onVoided={handleVoided}
+      />
+
+      <MarkPaidSheet
+        visible={selectedCustomer !== null}
+        customer={selectedCustomer}
+        onDismiss={() => setSelectedCustomer(null)}
+        onPaid={handlePaid}
+      />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: palette.surface },
+  segmentRow: { paddingHorizontal: 16, paddingVertical: 12 },
+  chipRow: { paddingHorizontal: 16, paddingBottom: 8 },
+  chip: { alignSelf: 'flex-start' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  emptyText: { color: palette.text3, textAlign: 'center' },
+  quickPickOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  quickPickSheet: {
+    backgroundColor: palette.card,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 24,
+    gap: 8,
+  },
+  quickPickTitle: { color: palette.text, marginBottom: 4 },
+  quickPickChips: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+});
