@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Appbar } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useDatabase } from '@/db/DatabaseProvider';
 import { listActiveProducts, seedSampleProducts } from '@/db/queries/products';
@@ -31,12 +31,14 @@ export function SellScreen() {
   const [summaryKey, setSummaryKey] = useState(0);
 
   useEffect(() => {
-    async function init() {
-      await seedSampleProducts(db);
-      setProducts(await listActiveProducts(db));
-    }
-    init();
+    seedSampleProducts(db);
   }, [db]);
+
+  useFocusEffect(
+    useCallback(() => {
+      listActiveProducts(db).then(setProducts);
+    }, [db]),
+  );
 
   const handleSaleComplete = useCallback(() => {
     setSummaryKey((k) => k + 1);
