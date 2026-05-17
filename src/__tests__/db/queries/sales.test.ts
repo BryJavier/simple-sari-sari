@@ -1,7 +1,7 @@
 import type { Database, Product } from '@/db/types';
 import { openTestDatabase } from '@/db/testClient';
 import { applyMigrations } from '@/db/migrations';
-import { createSale, voidSale, todaySalesSummary } from '@/db/queries/sales';
+import { createSale, voidSale, todaySalesSummary, listSalesByDate, getSaleWithItems } from '@/db/queries/sales';
 import { todayISO } from '@/utils/date';
 
 let db: Database;
@@ -154,5 +154,58 @@ describe('todaySalesSummary', () => {
     await createSale(db, { items: [{ product: noCostProduct, quantity: 1 }], paymentType: 'cash' });
     const summary = await todaySalesSummary(db);
     expect(summary.profitCentavos).toBe(0);
+  });
+});
+
+describe('listSalesByDate', () => {
+  it('returns sales for the correct day with items attached', async () => {
+    const saleId = await createSale(db, { items: [{ product, quantity: 2 }], paymentType: 'cash' });
+    const sales = await listSalesByDate(db, new Date());
+    expect(sales).toHaveLength(1);
+    expect(sales[0].id).toBe(saleId);
+    expect(sales[0].items).toHaveLength(1);
+    expect(sales[0].items[0].quantity).toBe(2);
+    expect(sales[0].items[0].product_name).toBe('Chippy');
+  });
+
+  it('includes voided sales', async () => {
+    const saleId = await createSale(db, { items: [{ product, quantity: 1 }], paymentType: 'cash' });
+    await voidSale(db, saleId);
+    const sales = await listSalesByDate(db, new Date());
+    expect(sales).toHaveLength(1);
+    expect(sales[0].voided_at).not.toBeNull();
+  });
+
+  it('excludes sales from other days', async () => {
+    await createSale(db, { items: [{ product, quantity: 1 }], paymentType: 'cash' });
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const sales = await listSalesByDate(db, yesterday);
+    expect(sales).toHaveLength(0);
+  });
+
+  it('returns multiple sales newest-first', async () => {
+    const id1 = await createSale(db, { items: [{ product, quantity: 1 }], paymentType: 'cash' });
+    const id2 = await createSale(db, { items: [{ product, quantity: 2 }], paymentType: 'cash' });
+    const sales = await listSalesByDate(db, new Date());
+    expect(sales[0].id).toBe(id2);
+    expect(sales[1].id).toBe(id1);
+  });
+});
+
+describe('getSaleWithItems', () => {
+  it('returns the sale with its items', async () => {
+    const saleId = await createSale(db, { items: [{ product, quantity: 3 }], paymentType: 'utang', customerName: 'Juan' });
+    const sale = await getSaleWithItems(db, saleId);
+    expect(sale).not.toBeNull();
+    expect(sale!.id).toBe(saleId);
+    expect(sale!.customer_name).toBe('Juan');
+    expect(sale!.items).toHaveLength(1);
+    expect(sale!.items[0].quantity).toBe(3);
+  });
+
+  it('returns null for an unknown id', async () => {
+    const sale = await getSaleWithItems(db, 99999);
+    expect(sale).toBeNull();
   });
 });

@@ -29,7 +29,7 @@ export function SellScreen() {
   const palette = useAppPalette();
   const styles = useMemo(() => makeStyles(palette), [palette]);
   const addItem = useCartStore((s) => s.addItem);
-  const beepPlayer = useAudioPlayer(require('../../../assets/sounds/beep.wav'));
+  const beepPlayer = useAudioPlayer(require('../../../assets/sounds/beep.wav'), { keepAudioSessionActive: true });
 
   const [products, setProducts] = useState<Product[]>([]);
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
@@ -76,7 +76,7 @@ export function SellScreen() {
             products={filteredProducts}
             onPress={(p) => {
               addItem(p);
-              try { beepPlayer.seekTo(0); beepPlayer.play(); } catch {}
+              beepPlayer.seekTo(0).then(() => beepPlayer.play()).catch(() => {});
             }}
             onLongPress={(p) => setPreviewProduct(p)}
           />

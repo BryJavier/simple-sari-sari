@@ -32,7 +32,7 @@ export function BarcodeScannerModal({ visible, products, onDismiss }: BarcodeSca
   useEffect(() => {
     onDismissRef.current = onDismiss;
   });
-  const beepPlayer = useAudioPlayer(require('../../../assets/sounds/beep.wav'));
+  const beepPlayer = useAudioPlayer(require('../../../assets/sounds/beep.wav'), { keepAudioSessionActive: true });
 
   useEffect(() => {
     if (!visible) {
@@ -87,7 +87,7 @@ export function BarcodeScannerModal({ visible, products, onDismiss }: BarcodeSca
                     setSnackVisible(true);
                   } else {
                     addItem(product);
-                    try { beepPlayer.seekTo(0); beepPlayer.play(); } catch {}
+                    beepPlayer.seekTo(0).then(() => beepPlayer.play()).catch(() => {});
                   }
 
                   if (debounceTimer.current) clearTimeout(debounceTimer.current);
